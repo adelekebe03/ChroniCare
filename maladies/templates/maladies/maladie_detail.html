@@ -1,0 +1,171 @@
+{% extends 'core/base.html' %}
+{% block title %}{{ maladie.nom }} — ChroniCare{% endblock %}
+
+{% block extra_css %}
+<style>
+  .cc-layout { display:grid; grid-template-columns:300px 1fr; gap:20px; }
+  @media(max-width:900px){ .cc-layout{ grid-template-columns:1fr; } }
+
+  .cc-id-card { background:#fff; border:1px solid rgba(0,0,0,.07); border-radius:12px; padding:24px; align-self:start; }
+
+  .mal-avatar { width:72px; height:72px; border-radius:14px; background:linear-gradient(135deg,#0F6E56,#1D9E75); color:#fff; display:flex; align-items:center; justify-content:center; font-size:30px; margin:0 auto 14px; }
+
+  .cc-mal-name { font-size:18px; font-weight:700; color:#1C2833; text-align:center; margin-bottom:6px; }
+
+  .type-badge { display:inline-flex; align-items:center; gap:5px; padding:4px 12px; border-radius:20px; font-size:12px; font-weight:600; }
+  .type-infectieuse    { background:#FCEBEB; color:#791F1F; }
+  .type-metabolique    { background:#FAEEDA; color:#633806; }
+  .type-respiratoire   { background:#E6F1FB; color:#0C447C; }
+  .type-cardiovasculaire { background:#FDECEA; color:#7B1F1F; }
+  .type-neurologique   { background:#EDE9FE; color:#4C1D95; }
+  .type-auto-immune    { background:#FED7AA; color:#7C2D12; }
+  .type-renale         { background:#CFFAFE; color:#0E7490; }
+  .type-autre          { background:#F1F5F9; color:#475569; }
+
+  .cc-type-center { text-align:center; margin-bottom:16px; }
+
+  .cc-info-row { display:flex; justify-content:space-between; padding:9px 0; border-bottom:1px solid rgba(0,0,0,.04); font-size:13px; }
+  .cc-info-row:last-child { border-bottom:none; }
+  .cc-info-row .lbl { color:#717D7E; font-weight:500; }
+  .cc-info-row .val { color:#1C2833; font-weight:600; text-align:right; }
+
+  .cc-actions-card { display:flex; flex-direction:column; gap:8px; margin-top:16px; padding-top:16px; border-top:1px solid rgba(0,0,0,.05); }
+  .cc-btn-full { display:flex; align-items:center; justify-content:center; gap:7px; padding:9px 16px; border-radius:9px; font-size:13px; font-weight:600; text-decoration:none; transition:.14s; }
+  .btn-edit-full   { background:#FAEEDA; color:#633806; } .btn-edit-full:hover   { background:#F0E0C0; color:#633806; }
+  .btn-delete-full { background:#FCEBEB; color:#791F1F; } .btn-delete-full:hover { background:#F0D5D5; color:#791F1F; }
+  .btn-back-full   { background:#F4F9FC; color:#4A5568; border:1px solid rgba(0,0,0,.08); } .btn-back-full:hover { background:#E8EEF2; }
+  .btn-add-full    { background:#E1F5EE; color:#085041; } .btn-add-full:hover    { background:#C5E5D5; color:#085041; }
+
+  .cc-right { display:flex; flex-direction:column; gap:16px; }
+  .cc-section { background:#fff; border:1px solid rgba(0,0,0,.07); border-radius:12px; overflow:hidden; }
+  .cc-section-header { padding:14px 18px; border-bottom:1px solid rgba(0,0,0,.06); display:flex; align-items:center; justify-content:space-between; }
+  .cc-section-title { font-size:14px; font-weight:600; color:#1C2833; display:flex; align-items:center; gap:8px; margin:0; }
+  .cc-section-title i { font-size:17px; color:#0F6E56; }
+  .cc-section-body { padding:16px 18px; }
+  .cc-section-link { font-size:12px; color:#0F6E56; text-decoration:none; font-weight:500; }
+
+  .cc-desc { background:#F4F9FC; border-radius:8px; padding:14px; font-size:13px; color:#4A5568; line-height:1.7; border-left:3px solid #0F6E56; }
+
+  .cc-patient-item { display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid rgba(0,0,0,.04); }
+  .cc-patient-item:last-child { border-bottom:none; }
+  .pt-avatar-sm { width:36px; height:36px; border-radius:50%; background:linear-gradient(135deg,#0F6E56,#1D9E75); color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; flex-shrink:0; }
+  .pt-avatar-sm.female { background:linear-gradient(135deg,#6B46C1,#9F7AEA); }
+  .cc-patient-name { font-size:13px; font-weight:600; color:#1C2833; text-decoration:none; }
+  .cc-patient-name:hover { color:#0F6E56; }
+  .cc-patient-meta { font-size:11px; color:#A0AEC0; }
+
+  .status-badge { display:inline-flex; font-size:10px; font-weight:600; padding:2px 8px; border-radius:20px; margin-left:6px; }
+  .sb-active { background:#FCEBEB; color:#791F1F; }
+  .sb-stable { background:#E6F1FB; color:#0C447C; }
+  .sb-guerie { background:#E1F5EE; color:#085041; }
+
+  .cc-empty-sm { text-align:center; padding:24px; color:#A0AEC0; font-size:13px; }
+  .cc-empty-sm i { font-size:30px; display:block; margin-bottom:8px; }
+
+  .cc-stat-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:16px; }
+  .cc-stat { background:#F4F9FC; border-radius:8px; padding:12px; text-align:center; }
+  .cc-stat-val { font-size:22px; font-weight:700; color:#0F6E56; line-height:1; }
+  .cc-stat-label { font-size:11px; color:#A0AEC0; font-weight:600; text-transform:uppercase; margin-top:4px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="cc-layout">
+
+  <!-- ── Carte maladie ─────────────────────────────────────────── -->
+  <div class="cc-id-card">
+    <div class="mal-avatar"><i class="ti ti-virus"></i></div>
+    <div class="cc-mal-name">{{ maladie.nom }}</div>
+    <div class="cc-type-center">
+      <span class="type-badge type-{{ maladie.type|slugify }}">{{ maladie.get_type_display }}</span>
+    </div>
+
+    <div class="cc-info-row">
+      <span class="lbl">Patients suivis</span>
+      <span class="val">{{ patient_maladies|length }}</span>
+    </div>
+    <div class="cc-info-row">
+      <span class="lbl">Cas actifs</span>
+      <span class="val" style="color:#791F1F;">{{ patient_maladies|length }}</span>
+    </div>
+
+    <div class="cc-actions-card">
+      <a href="{% url 'patient-maladie-create' %}?maladie={{ maladie.id }}" class="cc-btn-full btn-add-full">
+        <i class="ti ti-user-plus"></i> Associer un patient
+      </a>
+      <a href="{% url 'maladie-update' maladie.id %}" class="cc-btn-full btn-edit-full">
+        <i class="ti ti-edit"></i> Modifier
+      </a>
+      <a href="{% url 'maladie-delete' maladie.id %}" class="cc-btn-full btn-delete-full">
+        <i class="ti ti-trash"></i> Supprimer
+      </a>
+      <a href="{% url 'maladie-list' %}" class="cc-btn-full btn-back-full">
+        <i class="ti ti-arrow-left"></i> Retour à la liste
+      </a>
+    </div>
+  </div>
+
+  <!-- ── Panneau droit ─────────────────────────────────────────── -->
+  <div class="cc-right">
+
+    <!-- Description -->
+    <div class="cc-section">
+      <div class="cc-section-header">
+        <h3 class="cc-section-title"><i class="ti ti-notes"></i> Description</h3>
+      </div>
+      <div class="cc-section-body">
+        {% if maladie.description %}
+          <div class="cc-desc">{{ maladie.description }}</div>
+        {% else %}
+          <p style="color:#A0AEC0;font-size:13px;text-align:center;padding:8px 0;">Aucune description renseignée.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Patients avec cette maladie -->
+    <div class="cc-section">
+      <div class="cc-section-header">
+        <h3 class="cc-section-title"><i class="ti ti-users"></i> Patients concernés</h3>
+        <a href="{% url 'patient-maladie-create' %}?maladie={{ maladie.id }}" class="cc-section-link">
+          <i class="ti ti-plus"></i> Ajouter
+        </a>
+      </div>
+      <div class="cc-section-body">
+        {% for pm in patient_maladies %}
+          <div class="cc-patient-item">
+            <div class="pt-avatar-sm {% if pm.patient.sexe == 'F' %}female{% endif %}">
+              {{ pm.patient.prenom|first|upper }}{{ pm.patient.nom|first|upper }}
+            </div>
+            <div style="flex:1;">
+              <div>
+                <a href="{% url 'patient-detail' pm.patient.id %}" class="cc-patient-name">
+                  {{ pm.patient.nom }} {{ pm.patient.prenom }}
+                </a>
+                <span class="status-badge
+                  {% if pm.status == 'active' %}sb-active
+                  {% elif pm.status == 'stable' %}sb-stable
+                  {% else %}sb-guerie{% endif %}">
+                  {{ pm.get_status_display }}
+                </span>
+              </div>
+              <div class="cc-patient-meta">
+                Diagnostic : {{ pm.date_diagnostic|date:"d/m/Y" }}
+                {% if pm.observations %} · {{ pm.observations|truncatechars:60 }}{% endif %}
+              </div>
+            </div>
+            <a href="{% url 'patient-detail' pm.patient.id %}" style="font-size:12px;color:#0F6E56;text-decoration:none;flex-shrink:0;">
+              <i class="ti ti-eye"></i>
+            </a>
+          </div>
+        {% empty %}
+          <div class="cc-empty-sm">
+            <i class="ti ti-users"></i>
+            Aucun patient associé à cette maladie.
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

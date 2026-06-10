@@ -1,0 +1,357 @@
+{% extends 'core/base.html' %}
+{% block title %}{% if suivi %}Modifier{% else %}Nouveau{% endif %} suivi — ChroniCare{% endblock %}
+
+{% block extra_css %}
+<style>
+  .cc-form-wrap { max-width:820px; }
+
+  .cc-form-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; flex-wrap:wrap; gap:10px; }
+  .cc-form-header h1 { font-size:20px; font-weight:700; color:#1C2833; margin:0; display:flex; align-items:center; gap:8px; }
+  .cc-form-header h1 i { color:#0F6E56; }
+
+  /* Toggle type suivi */
+  .cc-type-toggle { display:flex; gap:10px; margin-bottom:16px; }
+  .cc-type-btn { flex:1; padding:12px 16px; border:2px solid #E2E8F0; border-radius:10px; background:#FAFBFC; cursor:pointer; display:flex; align-items:center; gap:10px; transition:.15s; }
+  .cc-type-btn input[type=radio] { display:none; }
+  .cc-type-btn i { font-size:22px; color:#A0AEC0; transition:.15s; }
+  .cc-type-btn .cc-type-label { font-size:13px; font-weight:600; color:#4A5568; }
+  .cc-type-btn .cc-type-sub { font-size:11px; color:#A0AEC0; }
+  .cc-type-btn:hover { border-color:#0F6E56; background:#F0FBF6; }
+  .cc-type-btn:hover i { color:#0F6E56; }
+  .cc-type-btn.selected { border-color:#0F6E56; background:#E1F5EE; }
+  .cc-type-btn.selected i { color:#0F6E56; }
+  .cc-type-btn.selected .cc-type-label { color:#085041; }
+
+  /* Carte patient verrouillée */
+  .cc-locked-card { background:#F4F9FC; border:1px solid rgba(0,0,0,.07); border-radius:12px; padding:16px 20px; margin-bottom:16px; display:flex; align-items:center; gap:14px; }
+  .cc-locked-avatar { width:44px; height:44px; border-radius:50%; background:linear-gradient(135deg,#0F6E56,#1D9E75); color:#fff; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:700; flex-shrink:0; }
+  .cc-locked-avatar.female { background:linear-gradient(135deg,#6B46C1,#9F7AEA); }
+  .cc-locked-name { font-size:14px; font-weight:700; color:#1C2833; }
+  .cc-locked-sub { font-size:12px; color:#717D7E; }
+  .cc-locked-icon { margin-left:auto; color:#A0AEC0; font-size:18px; }
+
+  .cc-section { background:#fff; border:1px solid rgba(0,0,0,.07); border-radius:12px; overflow:hidden; margin-bottom:16px; }
+  .cc-section-header { padding:14px 20px; border-bottom:1px solid rgba(0,0,0,.06); display:flex; align-items:center; gap:8px; }
+  .cc-section-header h3 { font-size:14px; font-weight:600; color:#1C2833; margin:0; }
+  .cc-section-header i { font-size:17px; color:#0F6E56; }
+  .cc-section-body { padding:20px; }
+
+  .cc-form-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .cc-form-grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; }
+  @media(max-width:576px){ .cc-form-grid,.cc-form-grid-3{ grid-template-columns:1fr; } }
+  .cc-field-full { grid-column:1/-1; }
+
+  .cc-field { display:flex; flex-direction:column; gap:5px; }
+  .cc-field label { font-size:12px; font-weight:600; color:#4A5568; }
+  .cc-field input, .cc-field select, .cc-field textarea {
+    width:100%; padding:9px 12px; border:1px solid #E2E8F0; border-radius:8px;
+    font-size:13px; background:#FAFBFC; color:#1C2833; outline:none;
+    transition:border-color .15s, box-shadow .15s; resize:vertical;
+  }
+  .cc-field input:focus, .cc-field select:focus, .cc-field textarea:focus {
+    border-color:#0F6E56; box-shadow:0 0 0 3px rgba(15,110,86,.1); background:#fff;
+  }
+  .cc-field-error { font-size:11px; color:#C53030; }
+  .cc-field-hint  { font-size:11px; color:#A0AEC0; }
+
+  /* IMC calculé */
+  .cc-imc-display { padding:9px 12px; border:1px solid #E2E8F0; border-radius:8px; font-size:13px; background:#FAFBFC; color:#717D7E; font-style:italic; }
+  .cc-imc-display.imc-ok   { background:#E1F5EE; color:#085041; font-weight:700; font-style:normal; border-color:#C5E5D5; }
+  .cc-imc-display.imc-warn { background:#FAEEDA; color:#633806; font-weight:700; font-style:normal; border-color:#F0E0C0; }
+  .cc-imc-display.imc-crit { background:#FCEBEB; color:#791F1F; font-weight:700; font-style:normal; border-color:#F0D5D5; }
+
+  .cc-form-errors { background:#FCEBEB; border:1px solid #F0D5D5; border-radius:9px; padding:12px 16px; margin-bottom:16px; font-size:13px; color:#791F1F; }
+  .cc-form-errors ul { margin:6px 0 0 16px; padding:0; }
+
+  .cc-form-footer { display:flex; gap:10px; flex-wrap:wrap; }
+  .btn-submit { background:#0F6E56; color:#fff; border:none; padding:10px 22px; border-radius:9px; font-size:13px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:7px; transition:.14s; }
+  .btn-submit:hover { background:#085041; }
+  .btn-back { background:#F4F9FC; color:#4A5568; border:1px solid rgba(0,0,0,.08); padding:10px 22px; border-radius:9px; font-size:13px; font-weight:600; text-decoration:none; display:inline-flex; align-items:center; gap:7px; }
+  .btn-back:hover { background:#E8EEF2; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="cc-form-wrap">
+
+  <div class="cc-form-header">
+    <h1>
+      <i class="ti ti-stethoscope"></i>
+      {% if suivi %}Modifier le suivi{% else %}Nouveau suivi médical{% endif %}
+    </h1>
+  </div>
+
+  {% if form.errors %}
+    <div class="cc-form-errors">
+      <strong>Erreurs à corriger :</strong>
+      <ul>
+        {% for field in form %}{% for e in field.errors %}<li><strong>{{ field.label }} :</strong> {{ e }}</li>{% endfor %}{% endfor %}
+        {% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  <form method="POST" novalidate>
+    {% csrf_token %}
+
+    {# ── MODE UPDATE : patient + médecin verrouillés ─────────── #}
+    {% if suivi %}
+      <div class="cc-locked-card">
+        <div class="cc-locked-avatar {% if suivi.patient.sexe == 'F' %}female{% endif %}">
+          {{ suivi.patient.prenom|first|upper }}{{ suivi.patient.nom|first|upper }}
+        </div>
+        <div>
+          <div class="cc-locked-name">{{ suivi.patient.nom }} {{ suivi.patient.prenom }}</div>
+          <div class="cc-locked-sub">
+            Suivi du {{ suivi.created_at|date:"d/m/Y à H:i" }}
+            {% if suivi.medecin %} · Dr. {{ suivi.medecin.get_full_name|default:suivi.medecin.username }}{% endif %}
+          </div>
+        </div>
+        <i class="ti ti-lock cc-locked-icon"></i>
+      </div>
+
+    {# ── MODE CREATE : sélecteur de type ─────────────────────── #}
+    {% else %}
+
+      {# Patient pré-rempli depuis fiche patient #}
+      {% if patient_obj %}
+        <div class="cc-locked-card">
+          <div class="cc-locked-avatar {% if patient_obj.sexe == 'F' %}female{% endif %}">
+            {{ patient_obj.prenom|first|upper }}{{ patient_obj.nom|first|upper }}
+          </div>
+          <div>
+            <div class="cc-locked-name">{{ patient_obj.nom }} {{ patient_obj.prenom }}</div>
+            <div class="cc-locked-sub">{{ patient_obj.get_sexe_display }} · {{ patient_obj.groupe_sanguin }}</div>
+          </div>
+          <i class="ti ti-lock cc-locked-icon"></i>
+        </div>
+        <input type="hidden" name="patient" value="{{ patient_obj.id }}">
+        <input type="hidden" name="type_suivi" value="direct" id="id_type_suivi">
+      {% else %}
+
+        {# Sélecteur de type suivi #}
+        <div class="cc-section">
+          <div class="cc-section-header">
+            <i class="ti ti-adjustments"></i><h3>Type de suivi</h3>
+          </div>
+          <div class="cc-section-body">
+            <div class="cc-type-toggle" id="type-toggle">
+              <label class="cc-type-btn {% if form.type_suivi.value != 'direct' %}selected{% endif %}" id="btn-rdv">
+                <input type="radio" name="type_suivi" value="rdv"
+                  {% if form.type_suivi.value != 'direct' %}checked{% endif %}
+                  onchange="switchType('rdv')">
+                <i class="ti ti-calendar-event"></i>
+                <div>
+                  <div class="cc-type-label">Avec rendez-vous</div>
+                  <div class="cc-type-sub">Lié à un RDV planifié</div>
+                </div>
+              </label>
+              <label class="cc-type-btn {% if form.type_suivi.value == 'direct' %}selected{% endif %}" id="btn-direct">
+                <input type="radio" name="type_suivi" value="direct"
+                  {% if form.type_suivi.value == 'direct' %}checked{% endif %}
+                  onchange="switchType('direct')">
+                <i class="ti ti-user-check"></i>
+                <div>
+                  <div class="cc-type-label">Consultation directe</div>
+                  <div class="cc-type-sub">Sans rendez-vous préalable</div>
+                </div>
+              </label>
+            </div>
+
+            {# Champ RDV #}
+            <div id="section-rdv" {% if form.type_suivi.value == 'direct' %}style="display:none;"{% endif %}>
+              <div class="cc-field">
+                <label for="{{ form.appointment.id_for_label }}">Rendez-vous <span style="color:#C53030;">*</span></label>
+                {{ form.appointment }}
+                {% if form.appointment.errors %}<span class="cc-field-error">{{ form.appointment.errors|join:" " }}</span>{% endif %}
+              </div>
+            </div>
+
+            {# Champs consultation directe #}
+            <div id="section-direct" {% if form.type_suivi.value != 'direct' %}style="display:none;"{% endif %}>
+              <div class="cc-form-grid">
+                <div class="cc-field">
+                  <label for="{{ form.patient.id_for_label }}">Patient <span style="color:#C53030;">*</span></label>
+                  {{ form.patient }}
+                  {% if form.patient.errors %}<span class="cc-field-error">{{ form.patient.errors|join:" " }}</span>{% endif %}
+                </div>
+                <div class="cc-field">
+                  <label for="{{ form.medecin.id_for_label }}">Médecin traitant</label>
+                  {{ form.medecin }}
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      {% endif %}
+    {% endif %}
+
+    {# ── CONSTANTES VITALES ──────────────────────────────────── #}
+    <div class="cc-section">
+      <div class="cc-section-header">
+        <i class="ti ti-heart-rate-monitor"></i><h3>Constantes vitales</h3>
+      </div>
+      <div class="cc-section-body">
+        <div class="cc-form-grid-3">
+
+          <div class="cc-field">
+            <label for="{{ form.poids.id_for_label }}">Poids (kg)</label>
+            {{ form.poids }}
+          </div>
+
+          <div class="cc-field">
+            <label for="{{ form.taille.id_for_label }}">Taille (m ou cm)</label>
+            {{ form.taille }}
+            <span class="cc-field-hint">Ex : 1.70 ou 170 — conversion automatique</span>
+          </div>
+
+          <div class="cc-field">
+            <label>IMC <span style="color:#A0AEC0;font-weight:400;">(calculé)</span></label>
+            <div class="cc-imc-display" id="imc-display">Entrez poids et taille</div>
+          </div>
+
+        </div>
+
+        <div class="cc-form-grid" style="margin-top:14px;">
+          <div class="cc-field">
+            <label for="{{ form.tension_systolique.id_for_label }}">Tension systolique (cmHg)</label>
+            {{ form.tension_systolique }}
+          </div>
+          <div class="cc-field">
+            <label for="{{ form.tension_diastolique.id_for_label }}">Tension diastolique (cmHg)</label>
+            {{ form.tension_diastolique }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# ── BIOLOGIE ─────────────────────────────────────────────── #}
+    <div class="cc-section">
+      <div class="cc-section-header">
+        <i class="ti ti-flask"></i><h3>Résultats biologiques</h3>
+      </div>
+      <div class="cc-section-body">
+        <div class="cc-form-grid-3">
+          <div class="cc-field">
+            <label for="{{ form.glycemie.id_for_label }}">Glycémie (g/L)</label>
+            {{ form.glycemie }}
+            <span class="cc-field-hint">Normal : 0.70 – 1.10 g/L</span>
+          </div>
+          <div class="cc-field">
+            <label for="{{ form.cd4.id_for_label }}">CD4 (cells/mm³)</label>
+            {{ form.cd4 }}
+            <span class="cc-field-hint">Normal : > 500</span>
+          </div>
+          <div class="cc-field">
+            <label for="{{ form.charge_virale.id_for_label }}">Charge virale (copies/mL)</label>
+            {{ form.charge_virale }}
+            <span class="cc-field-hint">Indétectable : < 40</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# ── STATUT + OBSERVATIONS ────────────────────────────────── #}
+    <div class="cc-section">
+      <div class="cc-section-header">
+        <i class="ti ti-notes"></i><h3>Évaluation clinique</h3>
+      </div>
+      <div class="cc-section-body">
+        <div class="cc-form-grid">
+          <div class="cc-field">
+            <label for="{{ form.statut.id_for_label }}">Statut clinique <span style="color:#C53030;">*</span></label>
+            {{ form.statut }}
+            {% if form.statut.errors %}<span class="cc-field-error">{{ form.statut.errors|join:" " }}</span>{% endif %}
+          </div>
+        </div>
+        <div class="cc-field" style="margin-top:14px;">
+          <label for="{{ form.observations.id_for_label }}">Observations médicales</label>
+          {{ form.observations }}
+          <span class="cc-field-hint">Synthèse de la consultation, évolution, conduite à tenir…</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="cc-form-footer">
+      <button type="submit" class="btn-submit">
+        <i class="ti ti-device-floppy"></i>
+        {% if suivi %}Enregistrer les modifications{% else %}Créer le suivi{% endif %}
+      </button>
+      {% if suivi %}
+        <a href="{% url 'suivi-detail' suivi.pk %}" class="btn-back">
+          <i class="ti ti-arrow-left"></i> Retour
+        </a>
+      {% else %}
+        <a href="{% url 'suivi-list' %}" class="btn-back">
+          <i class="ti ti-arrow-left"></i> Annuler
+        </a>
+      {% endif %}
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  // ── Toggle type suivi ────────────────────────────────────────
+  function switchType(type) {
+    const rdvSec    = document.getElementById('section-rdv');
+    const directSec = document.getElementById('section-direct');
+    const btnRdv    = document.getElementById('btn-rdv');
+    const btnDirect = document.getElementById('btn-direct');
+    if (!rdvSec) return;
+    if (type === 'rdv') {
+      rdvSec.style.display    = 'block';
+      directSec.style.display = 'none';
+      btnRdv.classList.add('selected');
+      btnDirect.classList.remove('selected');
+    } else {
+      rdvSec.style.display    = 'none';
+      directSec.style.display = 'block';
+      btnRdv.classList.remove('selected');
+      btnDirect.classList.add('selected');
+    }
+  }
+  window.switchType = switchType;
+
+  // ── Calcul IMC dynamique ─────────────────────────────────────
+  function calcIMC() {
+    const poidsEl  = document.getElementById('id_poids');
+    const tailleEl = document.getElementById('id_taille');
+    const display  = document.getElementById('imc-display');
+    if (!poidsEl || !tailleEl || !display) return;
+
+    let poids  = parseFloat(poidsEl.value);
+    let taille = parseFloat(tailleEl.value);
+    if (taille > 3) taille = taille / 100;
+
+    if (!isNaN(poids) && !isNaN(taille) && taille > 0) {
+      const imc = poids / (taille * taille);
+      let cls = 'imc-ok';
+      let label = '';
+      if (imc < 18.5)        { cls = 'imc-crit'; label = ' — Insuffisance'; }
+      else if (imc <= 24.9)  { cls = 'imc-ok';   label = ' — Normal'; }
+      else if (imc <= 29.9)  { cls = 'imc-warn';  label = ' — Surpoids'; }
+      else                   { cls = 'imc-crit';  label = ' — Obésité'; }
+      display.textContent = imc.toFixed(2) + label;
+      display.className = 'cc-imc-display ' + cls;
+    } else {
+      display.textContent = 'Entrez poids et taille';
+      display.className = 'cc-imc-display';
+    }
+  }
+
+  // Initialise si des valeurs sont déjà présentes (mode update)
+  document.addEventListener('DOMContentLoaded', function () {
+    calcIMC();
+    const p = document.getElementById('id_poids');
+    const t = document.getElementById('id_taille');
+    if (p) p.addEventListener('input', calcIMC);
+    if (t) t.addEventListener('input', calcIMC);
+  });
+})();
+</script>
+{% endblock %}

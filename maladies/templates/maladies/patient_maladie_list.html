@@ -1,0 +1,177 @@
+{% extends 'core/base.html' %}
+{% block title %}Patients — Maladies — ChroniCare{% endblock %}
+
+{% block extra_css %}
+<style>
+  .cc-page-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:22px; flex-wrap:wrap; gap:12px; }
+  .cc-page-header h1 { font-size:20px; font-weight:700; color:#1C2833; margin:0; display:flex; align-items:center; gap:8px; }
+  .cc-page-header h1 i { color:#0F6E56; }
+
+  .cc-filters { background:#fff; border:1px solid rgba(0,0,0,.07); border-radius:12px; padding:16px 20px; margin-bottom:18px; display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; }
+  .cc-filter-field { display:flex; flex-direction:column; gap:4px; min-width:160px; flex:1; }
+  .cc-filter-field label { font-size:11px; font-weight:600; color:#717D7E; text-transform:uppercase; }
+  .cc-filter-field select { padding:8px 12px; border:1px solid #E2E8F0; border-radius:8px; font-size:13px; outline:none; background:#FAFBFC; }
+  .cc-filter-field select:focus { border-color:#0F6E56; box-shadow:0 0 0 3px rgba(15,110,86,.1); }
+  .cc-filter-btn { padding:8px 18px; background:#0F6E56; color:#fff; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; }
+  .cc-filter-btn:hover { background:#085041; }
+  .cc-filter-reset { padding:8px 14px; background:#F4F9FC; color:#4A5568; border:1px solid rgba(0,0,0,.08); border-radius:8px; font-size:13px; text-decoration:none; }
+
+  .cc-card { background:#fff; border:1px solid rgba(0,0,0,.07); border-radius:12px; overflow:hidden; }
+  .cc-card-header { display:flex; align-items:center; justify-content:space-between; padding:14px 20px; border-bottom:1px solid rgba(0,0,0,.06); }
+  .cc-card-title { font-size:14px; font-weight:600; color:#1C2833; display:flex; align-items:center; gap:8px; margin:0; }
+  .cc-card-title i { color:#0F6E56; font-size:17px; }
+  .cc-count-badge { background:#E1F5EE; color:#085041; font-size:12px; font-weight:600; padding:3px 10px; border-radius:20px; }
+  .cc-table-wrap { overflow-x:auto; }
+  table.cc-table { width:100%; border-collapse:collapse; font-size:13px; }
+  table.cc-table th { padding:10px 16px; text-align:left; font-size:11px; font-weight:700; color:#A0AEC0; text-transform:uppercase; letter-spacing:.04em; border-bottom:1px solid rgba(0,0,0,.06); }
+  table.cc-table td { padding:12px 16px; border-bottom:1px solid rgba(0,0,0,.04); vertical-align:middle; }
+  table.cc-table tbody tr:hover { background:#F7FAFB; }
+  table.cc-table tbody tr:last-child td { border-bottom:none; }
+
+  .pt-avatar { width:34px; height:34px; border-radius:50%; background:linear-gradient(135deg,#0F6E56,#1D9E75); color:#fff; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; flex-shrink:0; }
+  .pt-avatar.female { background:linear-gradient(135deg,#6B46C1,#9F7AEA); }
+
+  .type-badge { display:inline-flex; padding:2px 8px; border-radius:20px; font-size:11px; font-weight:600; }
+  .type-infectieuse    { background:#FCEBEB; color:#791F1F; }
+  .type-metabolique    { background:#FAEEDA; color:#633806; }
+  .type-respiratoire   { background:#E6F1FB; color:#0C447C; }
+  .type-cardiovasculaire { background:#FDECEA; color:#7B1F1F; }
+  .type-neurologique   { background:#EDE9FE; color:#4C1D95; }
+  .type-auto-immune    { background:#FED7AA; color:#7C2D12; }
+  .type-renale         { background:#CFFAFE; color:#0E7490; }
+  .type-autre          { background:#F1F5F9; color:#475569; }
+
+  .status-badge { display:inline-flex; font-size:11px; font-weight:600; padding:3px 9px; border-radius:20px; }
+  .sb-active { background:#FCEBEB; color:#791F1F; }
+  .sb-stable { background:#E6F1FB; color:#0C447C; }
+  .sb-guerie { background:#E1F5EE; color:#085041; }
+
+  .cc-actions { display:flex; gap:5px; align-items:center; }
+  .cc-btn { display:inline-flex; align-items:center; justify-content:center; gap:4px; padding:6px 10px; border-radius:7px; font-size:12px; font-weight:500; text-decoration:none; border:none; cursor:pointer; transition:.14s; }
+  .btn-view   { background:#E1F5EE; color:#085041; } .btn-view:hover   { background:#C5E5D5; }
+  .btn-dossier{ background:#E6F1FB; color:#0C447C; } .btn-dossier:hover{ background:#C5D8EF; }
+  .btn-edit   { background:#FAEEDA; color:#633806; } .btn-edit:hover   { background:#F0E0C0; }
+  .btn-delete { background:#FCEBEB; color:#791F1F; } .btn-delete:hover { background:#F0D5D5; }
+
+  .btn-primary-sm { background:#0F6E56; color:#fff; padding:8px 16px; border-radius:9px; font-size:13px; font-weight:600; text-decoration:none; display:inline-flex; align-items:center; gap:6px; transition:.14s; }
+  .btn-primary-sm:hover { background:#085041; color:#fff; }
+
+  .cc-empty { text-align:center; padding:40px 20px; color:#A0AEC0; }
+  .cc-empty i { font-size:40px; display:block; margin-bottom:10px; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="cc-page-header">
+  <h1><i class="ti ti-dna"></i> Patients — Maladies chroniques</h1>
+  <a href="{% url 'patient-maladie-create' %}" class="btn-primary-sm">
+    <i class="ti ti-plus"></i> Nouvelle association
+  </a>
+</div>
+
+<form method="GET" class="cc-filters">
+  <div class="cc-filter-field" style="max-width:200px;">
+    <label>Statut</label>
+    <select name="status">
+      <option value="">Tous les statuts</option>
+      {% for key, label in status_choices %}
+        <option value="{{ key }}" {% if request.GET.status == key %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <button type="submit" class="cc-filter-btn"><i class="ti ti-search" style="margin-right:4px;"></i>Filtrer</button>
+  {% if request.GET.status %}
+    <a href="{% url 'patient-maladie-list' %}" class="cc-filter-reset">Réinitialiser</a>
+  {% endif %}
+</form>
+
+<div class="cc-card">
+  <div class="cc-card-header">
+    <h3 class="cc-card-title"><i class="ti ti-list"></i> Associations patients — maladies</h3>
+    <span class="cc-count-badge">{{ data|length }} association{{ data|length|pluralize }}</span>
+  </div>
+  <div class="cc-table-wrap">
+    <table class="cc-table">
+      <thead>
+        <tr>
+          <th>Patient</th>
+          <th>Maladie</th>
+          <th>Type</th>
+          <th>Statut</th>
+          <th>Date diagnostic</th>
+          <th>Observations</th>
+          <th style="text-align:center;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in data %}
+        <tr>
+          <td>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div class="pt-avatar {% if item.patient.sexe == 'F' %}female{% endif %}">
+                {{ item.patient.prenom|first|upper }}{{ item.patient.nom|first|upper }}
+              </div>
+              <div>
+                <a href="{% url 'patient-detail' item.patient.id %}" style="font-weight:600;color:#1C2833;text-decoration:none;">
+                  {{ item.patient.nom }} {{ item.patient.prenom }}
+                </a>
+              </div>
+            </div>
+          </td>
+          <td>
+            <a href="{% url 'maladie-detail' item.maladie.id %}" style="font-weight:600;color:#1C2833;text-decoration:none;">
+              {{ item.maladie.nom }}
+            </a>
+          </td>
+          <td>
+            <span class="type-badge type-{{ item.maladie.type|slugify }}">
+              {{ item.maladie.get_type_display }}
+            </span>
+          </td>
+          <td>
+            <span class="status-badge
+              {% if item.status == 'active' %}sb-active
+              {% elif item.status == 'stable' %}sb-stable
+              {% else %}sb-guerie{% endif %}">
+              {{ item.get_status_display }}
+            </span>
+          </td>
+          <td style="font-size:12px;color:#717D7E;">{{ item.date_diagnostic|date:"d/m/Y" }}</td>
+          <td style="font-size:12px;color:#717D7E;max-width:200px;">
+            {{ item.observations|default:"—"|truncatechars:60 }}
+          </td>
+          <td>
+            <div class="cc-actions">
+              <a href="{% url 'patient-detail' item.patient.id %}" class="cc-btn btn-view" title="Fiche patient">
+                <i class="ti ti-user"></i>
+              </a>
+              <a href="{% url 'dossier-medical' item.patient.id %}" class="cc-btn btn-dossier" title="Dossier médical">
+                <i class="ti ti-clipboard-text"></i>
+              </a>
+              <a href="{% url 'patient-maladie-update' item.id %}" class="cc-btn btn-edit" title="Modifier">
+                <i class="ti ti-edit"></i>
+              </a>
+              <a href="{% url 'patient-maladie-delete' item.id %}" class="cc-btn btn-delete" title="Supprimer">
+                <i class="ti ti-trash"></i>
+              </a>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="7">
+            <div class="cc-empty">
+              <i class="ti ti-dna"></i>
+              Aucune association patient — maladie enregistrée.
+              <br><a href="{% url 'patient-maladie-create' %}" style="color:#0F6E56;font-weight:600;">Créer la première →</a>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}

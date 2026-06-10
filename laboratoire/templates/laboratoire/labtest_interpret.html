@@ -1,0 +1,161 @@
+{% extends 'core/base.html' %}
+{% block title %}Interpréter l'analyse — ChroniCare{% endblock %}
+{% block page_title %}Interprétation du résultat{% endblock %}
+
+{% block extra_css %}
+<style>
+  .cc-interp-wrap { max-width:700px; }
+
+  /* En-tête analyse */
+  .cc-analysis-header { background:linear-gradient(135deg,#085041,#0F6E56); color:#fff; border-radius:12px; padding:20px 24px; margin-bottom:20px; display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+  .cc-ah-icon { width:48px; height:48px; border-radius:10px; background:rgba(255,255,255,.18); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .cc-ah-icon i { font-size:24px; color:#fff; }
+  .cc-ah-title { font-size:17px; font-weight:700; margin:0 0 2px; }
+  .cc-ah-sub   { font-size:12px; color:rgba(255,255,255,.8); }
+
+  /* Résumé résultat */
+  .cc-result-card { background:#fff; border:1px solid rgba(0,0,0,.07); border-radius:12px; padding:18px 20px; margin-bottom:16px; }
+  .cc-result-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:12px; margin-bottom:14px; }
+  .cc-vital { background:#F4F9FC; border-radius:8px; padding:10px 12px; text-align:center; }
+  .cc-vital-label { font-size:10px; font-weight:700; color:#A0AEC0; text-transform:uppercase; margin-bottom:4px; }
+  .cc-vital-val   { font-size:20px; font-weight:700; color:#1C2833; line-height:1; }
+  .cc-vital-unit  { font-size:10px; color:#717D7E; }
+  .cc-vital.warn     { background:#FAEEDA; } .cc-vital.warn .cc-vital-val     { color:#633806; }
+  .cc-vital.critical { background:#FCEBEB; } .cc-vital.critical .cc-vital-val { color:#791F1F; }
+  .cc-vital.ok       { background:#E1F5EE; } .cc-vital.ok .cc-vital-val       { color:#085041; }
+
+  .status-badge { display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:20px; font-size:12px; font-weight:600; }
+  .sb-normal   { background:#E1F5EE; color:#085041; }
+  .sb-anormal  { background:#FAEEDA; color:#633806; }
+  .sb-critique { background:#FCEBEB; color:#791F1F; }
+  .sb-attente  { background:#E6F1FB; color:#0C447C; }
+
+  .cc-ref-row { display:flex; justify-content:space-between; font-size:12px; color:#717D7E; padding:5px 0; border-bottom:1px solid rgba(0,0,0,.04); }
+  .cc-ref-row:last-child { border-bottom:none; }
+
+  /* Formulaire interprétation */
+  .cc-section { background:#fff; border:1px solid rgba(0,0,0,.07); border-radius:12px; overflow:hidden; margin-bottom:16px; }
+  .cc-section-header { padding:14px 20px; border-bottom:1px solid rgba(0,0,0,.06); display:flex; align-items:center; gap:8px; }
+  .cc-section-header h3 { font-size:14px; font-weight:600; color:#1C2833; margin:0; }
+  .cc-section-header i  { font-size:17px; color:#0F6E56; }
+  .cc-section-body { padding:20px; }
+
+  .cc-field { display:flex; flex-direction:column; gap:5px; }
+  .cc-field label { font-size:12px; font-weight:600; color:#4A5568; }
+  .cc-field textarea {
+    width:100%; padding:10px 12px; border:1px solid #E2E8F0; border-radius:8px;
+    font-size:13px; background:#FAFBFC; color:#1C2833; outline:none; resize:vertical;
+    transition:border-color .15s, box-shadow .15s;
+  }
+  .cc-field textarea:focus { border-color:#0F6E56; box-shadow:0 0 0 3px rgba(15,110,86,.1); background:#fff; }
+  .cc-field-hint { font-size:11px; color:#A0AEC0; }
+
+  .cc-form-footer { display:flex; gap:10px; flex-wrap:wrap; }
+  .btn-submit { background:#0F6E56; color:#fff; border:none; padding:10px 22px; border-radius:9px; font-size:13px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:7px; transition:.14s; }
+  .btn-submit:hover { background:#085041; }
+  .btn-back { background:#F4F9FC; color:#4A5568; border:1px solid rgba(0,0,0,.08); padding:10px 22px; border-radius:9px; font-size:13px; font-weight:600; text-decoration:none; display:inline-flex; align-items:center; gap:7px; }
+  .btn-back:hover { background:#E8EEF2; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="cc-interp-wrap">
+
+  <!-- En-tête -->
+  <div class="cc-analysis-header">
+    <div class="cc-ah-icon"><i class="ti ti-flask"></i></div>
+    <div>
+      <div class="cc-ah-title">{{ test.get_type_test_display }} — {{ test.patient }}</div>
+      <div class="cc-ah-sub">
+        Suivi du {{ test.suivi.created_at|date:"d/m/Y" }}
+        {% if test.prescripteur %} · Prescrit par Dr. {{ test.prescripteur.get_full_name|default:test.prescripteur.username }}{% endif %}
+        · Validé le {{ test.validated_at|date:"d/m/Y à H:i" }}
+      </div>
+    </div>
+  </div>
+
+  <!-- Résumé du résultat -->
+  <div class="cc-result-card">
+    <div class="cc-result-grid">
+      {% if test.valeur is not None %}
+      <div class="cc-vital
+        {% if test.status == 'critique' %}critical
+        {% elif test.status == 'anormal' %}warn
+        {% elif test.status == 'normal' %}ok{% endif %}">
+        <div class="cc-vital-label">Valeur</div>
+        <div class="cc-vital-val">
+          {{ test.valeur }}{% if test.valeur_secondaire %}/{{ test.valeur_secondaire }}{% endif %}
+        </div>
+        <div class="cc-vital-unit">{{ test.unite }}</div>
+      </div>
+      {% endif %}
+      <div class="cc-vital">
+        <div class="cc-vital-label">Statut</div>
+        <div style="padding-top:4px;">
+          <span class="status-badge
+            {% if test.status == 'normal' %}sb-normal
+            {% elif test.status == 'anormal' %}sb-anormal
+            {% elif test.status == 'critique' %}sb-critique
+            {% else %}sb-attente{% endif %}">
+            {{ test.get_status_display }}
+          </span>
+        </div>
+      </div>
+      {% if test.seuil_min is not None or test.seuil_max is not None %}
+      <div class="cc-vital">
+        <div class="cc-vital-label">Références</div>
+        <div style="font-size:12px;color:#717D7E;padding-top:4px;">
+          {% if test.seuil_min is not None %}Min : {{ test.seuil_min }}{% endif %}
+          {% if test.seuil_min is not None and test.seuil_max is not None %}<br>{% endif %}
+          {% if test.seuil_max is not None %}Max : {{ test.seuil_max }}{% endif %}
+          {% if test.unite %} {{ test.unite }}{% endif %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    {% if test.resultat %}
+    <div style="background:#F4F9FC;border-radius:8px;padding:12px;font-size:13px;color:#4A5568;line-height:1.6;border-left:3px solid #0F6E56;">
+      <div style="font-size:10px;font-weight:700;color:#A0AEC0;text-transform:uppercase;margin-bottom:5px;">Résultat laboratoire</div>
+      {{ test.resultat }}
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Formulaire interprétation -->
+  <form method="POST" novalidate>
+    {% csrf_token %}
+
+    <div class="cc-section">
+      <div class="cc-section-header">
+        <i class="ti ti-notes"></i>
+        <h3>Interprétation clinique</h3>
+      </div>
+      <div class="cc-section-body">
+        <div class="cc-field">
+          <label for="{{ form.notes_medecin.id_for_label }}">
+            Interprétation, conduite à tenir, adaptation thérapeutique
+          </label>
+          {{ form.notes_medecin }}
+          <span class="cc-field-hint">
+            Cette interprétation sera enregistrée dans le suivi médical du patient et visible dans son dossier.
+          </span>
+          {% if form.notes_medecin.errors %}
+            <span style="font-size:11px;color:#C53030;">{{ form.notes_medecin.errors|join:" " }}</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="cc-form-footer">
+      <button type="submit" class="btn-submit">
+        <i class="ti ti-device-floppy"></i> Enregistrer l'interprétation
+      </button>
+      <a href="{% url 'labtest-detail' test.pk %}" class="btn-back">
+        <i class="ti ti-arrow-left"></i> Retour au détail
+      </a>
+    </div>
+  </form>
+
+</div>
+{% endblock %}

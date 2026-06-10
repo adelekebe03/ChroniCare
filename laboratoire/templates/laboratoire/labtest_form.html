@@ -1,0 +1,102 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+
+<div class="container mt-4">
+
+    <!-- HEADER -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body d-flex justify-content-between align-items-center">
+
+            <h3 class="fw-bold mb-0">
+                🧪 Nouvelle analyse de laboratoire
+            </h3>
+
+            <a href="{% url 'labtest-list' %}" class="btn btn-outline-secondary btn-sm">
+                ⬅ Retour
+            </a>
+
+        </div>
+    </div>
+
+    <!-- FORM CARD -->
+    <div class="card shadow-sm border-0">
+
+        <div class="card-body">
+
+            <form method="POST">
+                {% csrf_token %}
+
+                <div class="row g-3">
+
+                    <!-- PATIENT -->
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Patient</label>
+                        {{ form.patient }}
+                    </div>
+
+                    <!-- PRESCRIPTION -->
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Prescription</label>
+                        {{ form.prescription }}
+                    </div>
+
+                    <!-- TYPE TEST -->
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Type d'analyse</label>
+                        {{ form.type_test }}
+                    </div>
+
+                    <!-- MALADIE -->
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Maladie</label>
+                        {{ form.maladie }}
+                    </div>
+
+                    <!-- VALEUR -->
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Valeur</label>
+                        {{ form.valeur }}
+                    </div>
+
+                    <!-- UNITE -->
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Unité</label>
+                        {{ form.unite }}
+                    </div>
+
+                    <!-- STATUS -->
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Statut</label>
+                        {{ form.status }}
+                    </div>
+
+                    <!-- RESULTAT -->
+                    <div class="col-12">
+                        <label class="form-label fw-semibold">Résultat</label>
+                        {{ form.resultat }}
+                    </div>
+
+                </div>
+
+                <!-- ACTIONS -->
+                <div class="mt-4 d-flex justify-content-between">
+
+                    <button type="reset" class="btn btn-outline-danger">
+                        🔄 Réinitialiser
+                    </button>
+
+                    <button type="submit" class="btn btn-success px-4">
+                        💾 Enregistrer analyse
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

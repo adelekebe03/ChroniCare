@@ -1,0 +1,199 @@
+{% extends 'core/base.html' %}
+{% block title %}Analyses de laboratoire — ChroniCare{% endblock %}
+
+{% block extra_css %}
+<style>
+  .cc-page-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:22px; flex-wrap:wrap; gap:12px; }
+  .cc-page-header h1 { font-size:20px; font-weight:700; color:#1C2833; margin:0; display:flex; align-items:center; gap:8px; }
+  .cc-page-header h1 i { color:#0F6E56; }
+
+  .cc-filters { background:#fff; border:1px solid rgba(0,0,0,.07); border-radius:12px; padding:16px 20px; margin-bottom:18px; display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; }
+  .cc-filter-field { display:flex; flex-direction:column; gap:4px; min-width:140px; flex:1; }
+  .cc-filter-field label { font-size:11px; font-weight:600; color:#717D7E; text-transform:uppercase; }
+  .cc-filter-field input, .cc-filter-field select { padding:8px 12px; border:1px solid #E2E8F0; border-radius:8px; font-size:13px; outline:none; background:#FAFBFC; }
+  .cc-filter-field input:focus, .cc-filter-field select:focus { border-color:#0F6E56; box-shadow:0 0 0 3px rgba(15,110,86,.1); }
+  .cc-filter-btn { padding:8px 18px; background:#0F6E56; color:#fff; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; }
+  .cc-filter-btn:hover { background:#085041; }
+  .cc-filter-reset { padding:8px 14px; background:#F4F9FC; color:#4A5568; border:1px solid rgba(0,0,0,.08); border-radius:8px; font-size:13px; text-decoration:none; }
+
+  .cc-card { background:#fff; border:1px solid rgba(0,0,0,.07); border-radius:12px; overflow:hidden; }
+  .cc-card-header { display:flex; align-items:center; justify-content:space-between; padding:14px 20px; border-bottom:1px solid rgba(0,0,0,.06); }
+  .cc-card-title { font-size:14px; font-weight:600; color:#1C2833; display:flex; align-items:center; gap:8px; margin:0; }
+  .cc-card-title i { color:#0F6E56; font-size:17px; }
+  .cc-count-badge { background:#E1F5EE; color:#085041; font-size:12px; font-weight:600; padding:3px 10px; border-radius:20px; }
+  .cc-table-wrap { overflow-x:auto; }
+  table.cc-table { width:100%; border-collapse:collapse; font-size:13px; }
+  table.cc-table th { padding:10px 16px; text-align:left; font-size:11px; font-weight:700; color:#A0AEC0; text-transform:uppercase; letter-spacing:.04em; border-bottom:1px solid rgba(0,0,0,.06); }
+  table.cc-table td { padding:12px 16px; border-bottom:1px solid rgba(0,0,0,.04); vertical-align:middle; }
+  table.cc-table tbody tr:hover { background:#F7FAFB; }
+  table.cc-table tbody tr:last-child td { border-bottom:none; }
+
+  .pt-avatar { width:32px; height:32px; border-radius:50%; background:linear-gradient(135deg,#0F6E56,#1D9E75); color:#fff; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; flex-shrink:0; }
+  .pt-avatar.female { background:linear-gradient(135deg,#6B46C1,#9F7AEA); }
+
+  .status-badge { display:inline-flex; align-items:center; gap:4px; padding:3px 9px; border-radius:20px; font-size:11px; font-weight:600; }
+  .sb-attente  { background:#E6F1FB; color:#0C447C; }
+  .sb-normal   { background:#E1F5EE; color:#085041; }
+  .sb-anormal  { background:#FAEEDA; color:#633806; }
+  .sb-critique { background:#FCEBEB; color:#791F1F; }
+
+  .urgence-badge { display:inline-flex; padding:2px 7px; border-radius:20px; font-size:10px; font-weight:700; background:#FCEBEB; color:#791F1F; margin-left:4px; }
+  .non-lu-badge  { display:inline-flex; padding:2px 7px; border-radius:20px; font-size:10px; font-weight:700; background:#FAEEDA; color:#633806; margin-left:4px; }
+
+  .cc-actions { display:flex; gap:5px; align-items:center; }
+  .cc-btn { display:inline-flex; align-items:center; justify-content:center; gap:4px; padding:6px 10px; border-radius:7px; font-size:12px; font-weight:500; text-decoration:none; border:none; cursor:pointer; transition:.14s; white-space:nowrap; }
+  .btn-view    { background:#E1F5EE; color:#085041; } .btn-view:hover    { background:#C5E5D5; }
+  .btn-result  { background:#EDE9FE; color:#4C1D95; } .btn-result:hover  { background:#DDD6FE; }
+  .btn-valid   { background:#E1F5EE; color:#085041; } .btn-valid:hover   { background:#C5E5D5; }
+  .btn-interp  { background:#FAEEDA; color:#633806; } .btn-interp:hover  { background:#F0E0C0; }
+
+  .cc-empty { text-align:center; padding:40px 20px; color:#A0AEC0; }
+  .cc-empty i { font-size:40px; display:block; margin-bottom:10px; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="cc-page-header">
+  <h1><i class="ti ti-flask"></i> Analyses de laboratoire</h1>
+</div>
+
+<form method="GET" class="cc-filters">
+  <div class="cc-filter-field">
+    <label>Patient</label>
+    <input type="text" name="patient" value="{{ request.GET.patient }}" placeholder="Rechercher…">
+  </div>
+  <div class="cc-filter-field" style="max-width:180px;">
+    <label>Statut</label>
+    <select name="status">
+      <option value="">Tous</option>
+      {% for key, label in status_choices %}
+        <option value="{{ key }}" {% if request.GET.status == key %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="cc-filter-field" style="max-width:180px;">
+    <label>Date</label>
+    <input type="date" name="date" value="{{ request.GET.date }}">
+  </div>
+  <button type="submit" class="cc-filter-btn"><i class="ti ti-search" style="margin-right:4px;"></i>Filtrer</button>
+  {% if request.GET.patient or request.GET.status or request.GET.date %}
+    <a href="{% url 'labtest-list' %}" class="cc-filter-reset">Réinitialiser</a>
+  {% endif %}
+</form>
+
+<div class="cc-card">
+  <div class="cc-card-header">
+    <h3 class="cc-card-title">
+      <i class="ti ti-list"></i>
+      {% if role == 'lab' %}Demandes en cours{% elif role == 'doctor' %}Mes prescriptions{% else %}Toutes les analyses{% endif %}
+    </h3>
+    <span class="cc-count-badge">{{ labtests|length }} analyse{{ labtests|length|pluralize }}</span>
+  </div>
+  <div class="cc-table-wrap">
+    <table class="cc-table">
+      <thead>
+        <tr>
+          <th>Patient</th>
+          <th>Analyse</th>
+          <th>Prescripteur</th>
+          <th>Valeur</th>
+          <th>Statut</th>
+          <th>Date</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for test in labtests %}
+        <tr>
+          <td>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div class="pt-avatar {% if test.patient.sexe == 'F' %}female{% endif %}">
+                {{ test.patient.prenom|first|upper }}{{ test.patient.nom|first|upper }}
+              </div>
+              <a href="{% url 'patient-detail' test.patient.id %}" style="font-weight:600;color:#1C2833;text-decoration:none;">
+                {{ test.patient.nom }} {{ test.patient.prenom }}
+              </a>
+            </div>
+          </td>
+          <td>
+            <span style="font-weight:600;">{{ test.get_type_test_display }}</span>
+            {% if test.urgence %}<span class="urgence-badge"><i class="ti ti-bolt" style="font-size:9px;"></i> URGENT</span>{% endif %}
+            {% if test.is_validated and not test.lu_par_medecin %}<span class="non-lu-badge">Non interprété</span>{% endif %}
+            {% if test.maladie %}<div style="font-size:11px;color:#A0AEC0;">{{ test.maladie.nom }}</div>{% endif %}
+          </td>
+          <td style="font-size:12px;color:#717D7E;">
+            {% if test.prescripteur %}
+              Dr. {{ test.prescripteur.get_full_name|default:test.prescripteur.username }}
+            {% else %}
+              <span style="color:#A0AEC0;">—</span>
+            {% endif %}
+          </td>
+          <td style="font-size:13px;">
+            {% if test.valeur is not None %}
+              <strong>{{ test.valeur }}</strong>
+              {% if test.unite %}<span style="color:#717D7E;font-size:11px;"> {{ test.unite }}</span>{% endif %}
+              {% if test.seuil_min or test.seuil_max %}
+                <div style="font-size:10px;color:#A0AEC0;">
+                  Réf : {% if test.seuil_min %}{{ test.seuil_min }}{% endif %}–{% if test.seuil_max %}{{ test.seuil_max }}{% endif %}
+                </div>
+              {% endif %}
+            {% else %}
+              <span style="color:#A0AEC0;">—</span>
+            {% endif %}
+          </td>
+          <td>
+            <span class="status-badge
+              {% if test.status == 'en_attente' %}sb-attente
+              {% elif test.status == 'normal' %}sb-normal
+              {% elif test.status == 'anormal' %}sb-anormal
+              {% else %}sb-critique{% endif %}">
+              {{ test.get_status_display }}
+            </span>
+            {% if test.is_validated %}
+              <div style="font-size:10px;color:#085041;margin-top:2px;"><i class="ti ti-check" style="font-size:10px;"></i> Validé</div>
+            {% endif %}
+          </td>
+          <td style="font-size:12px;color:#717D7E;white-space:nowrap;">
+            {{ test.date_test|date:"d/m/Y" }}<br>
+            <span style="font-size:11px;color:#A0AEC0;">{{ test.date_test|date:"H:i" }}</span>
+          </td>
+          <td>
+            <div class="cc-actions">
+              <a href="{% url 'labtest-detail' test.id %}" class="cc-btn btn-view" title="Voir">
+                <i class="ti ti-eye"></i>
+              </a>
+              {% if request.user.role == 'lab' or request.user.role == 'admin' %}
+                {% if not test.is_validated %}
+                  <a href="{% url 'labtest-result' test.id %}" class="cc-btn btn-result" title="Saisir résultat">
+                    <i class="ti ti-pencil"></i>
+                  </a>
+                {% endif %}
+              {% endif %}
+              {% if request.user.role == 'doctor' or request.user.role == 'admin' %}
+                {% if test.is_validated and not test.lu_par_medecin %}
+                  <a href="{% url 'labtest-interpret' test.id %}" class="cc-btn btn-interp" title="Interpréter">
+                    <i class="ti ti-notes"></i>
+                  </a>
+                {% endif %}
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="7">
+            <div class="cc-empty">
+              <i class="ti ti-flask"></i>
+              Aucune analyse
+              {% if role == 'lab' %}en attente{% elif role == 'doctor' %}prescrite{% else %}enregistrée{% endif %}.
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}

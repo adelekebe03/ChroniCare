@@ -1,0 +1,92 @@
+{% extends "core/base.html" %}
+{% block title %}Modèles de messages — ChroniCare{% endblock %}
+{% block page_title %}Modèles de messages{% endblock %}
+
+{% block extra_css %}
+<style>
+  .cc-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; flex-wrap:wrap; gap:10px; }
+  .cc-header h3 { font-size:16px; font-weight:700; color:#1C2833; margin:0; }
+  .btn-cc { display:inline-flex; align-items:center; gap:6px; padding:9px 16px; border-radius:9px; font-size:13px; font-weight:600; text-decoration:none; border:none; cursor:pointer; transition:.15s; }
+  .btn-primary   { background:#1C2833; color:#fff; }
+  .btn-primary:hover   { background:#0f1923; }
+  .btn-secondary { background:#fff; border:1px solid rgba(0,0,0,.12); color:#4A5568; }
+  .btn-secondary:hover { background:#F4F9FC; }
+  .btn-danger    { background:#FCEBEB; color:#791F1F; border:1px solid #F5C6CB; }
+  .btn-danger:hover    { background:#F8D7DA; }
+
+  .tpl-card { background:#fff; border:1px solid rgba(0,0,0,.07); border-radius:12px; padding:16px 18px; margin-bottom:12px; }
+  .tpl-card-header { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:8px; }
+  .tpl-title { font-size:14px; font-weight:700; color:#1C2833; }
+  .tpl-code  { font-size:11px; color:#A0AEC0; font-family:monospace; background:#F3F4F6; padding:2px 7px; border-radius:5px; }
+  .tpl-content { font-size:13px; color:#4A5568; background:#F9FAFB; border-radius:8px; padding:10px 12px; margin-top:8px; white-space:pre-wrap; word-break:break-word; }
+  .badge { display:inline-flex; font-size:11px; font-weight:600; padding:3px 9px; border-radius:20px; }
+  .b-alert  { background:#FCEBEB; color:#791F1F; }
+  .b-notif  { background:#E6F1FB; color:#0C447C; }
+  .b-info   { background:#F0FDF4; color:#065F46; }
+  .b-warn   { background:#FAEEDA; color:#633806; }
+  .actions  { display:flex; gap:8px; flex-wrap:wrap; }
+
+  .variable-hint { font-size:11px; color:#717D7E; margin-top:6px; }
+  .variable-hint code { background:#F3F4F6; padding:1px 5px; border-radius:4px; font-size:11px; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="cc-header">
+  <h3><i class="ti ti-template" style="font-size:17px;margin-right:6px;"></i> Modèles de messages</h3>
+  <a href="{% url 'template-create' %}" class="btn-cc btn-primary">
+    <i class="ti ti-plus"></i> Nouveau modèle
+  </a>
+</div>
+
+{% if messages %}
+{% for msg in messages %}
+<div style="background:#E1F5EE;border-radius:9px;padding:12px 16px;margin-bottom:14px;font-size:13px;color:#085041;">
+  {{ msg }}
+</div>
+{% endfor %}
+{% endif %}
+
+<p class="variable-hint" style="margin-bottom:14px;">
+  Variables disponibles dans le contenu :
+  <code>{{patient_nom}}</code> <code>{{valeur}}</code> <code>{{seuil}}</code>
+  <code>{{unite}}</code> <code>{{date}}</code> <code>{{type_mesure}}</code>
+</p>
+
+{% for tpl in templates %}
+<div class="tpl-card">
+  <div class="tpl-card-header">
+    <div>
+      <span class="tpl-title">{{ tpl.title }}</span>
+      &nbsp;
+      <span class="tpl-code">{{ tpl.code }}</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      {% if tpl.type == 'alert' %}<span class="badge b-alert">Alerte</span>
+      {% elif tpl.type == 'notification' %}<span class="badge b-notif">Notification</span>
+      {% elif tpl.type == 'warning' %}<span class="badge b-warn">Avertissement</span>
+      {% else %}<span class="badge b-info">Information</span>{% endif %}
+      <span style="font-size:11px;color:#A0AEC0;">{{ tpl.updated_at|date:"d/m/Y" }}</span>
+    </div>
+  </div>
+  <div class="tpl-content">{{ tpl.content }}</div>
+  <div class="actions" style="margin-top:12px;">
+    <form method="POST" action="{% url 'template-delete' tpl.pk %}" onsubmit="return confirm('Supprimer ce modèle ?');">
+      {% csrf_token %}
+      <button type="submit" class="btn-cc btn-danger" style="padding:5px 10px;font-size:11px;">
+        <i class="ti ti-trash"></i> Supprimer
+      </button>
+    </form>
+  </div>
+</div>
+{% empty %}
+<div style="text-align:center;color:#A0AEC0;padding:40px;background:#fff;border-radius:12px;border:1px solid rgba(0,0,0,.07);">
+  Aucun modèle de message créé.<br>
+  <a href="{% url 'template-create' %}" style="color:#1C2833;font-weight:600;margin-top:8px;display:inline-block;">
+    Créer le premier modèle →
+  </a>
+</div>
+{% endfor %}
+
+{% endblock %}

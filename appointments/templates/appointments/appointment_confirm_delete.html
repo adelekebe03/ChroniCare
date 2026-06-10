@@ -1,0 +1,58 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+
+<div class="container mt-4">
+
+    <div class="card shadow-sm border-0">
+
+        <div class="card-header bg-danger text-white">
+
+            <h4 class="mb-0">
+                Supprimer le rendez-vous
+            </h4>
+
+        </div>
+
+        <div class="card-body">
+
+            <p>
+                Voulez-vous vraiment supprimer ce rendez-vous ?
+            </p>
+
+            <p>
+                <strong>Patient :</strong>
+                {{ appointment.patient }}
+            </p>
+
+            <p>
+                <strong>Date :</strong>
+                {{ appointment.date }}
+            </p>
+
+            <p>
+                <strong>Heure :</strong>
+                {{ appointment.heure }}
+            </p>
+
+            <form method="POST">
+
+                {% csrf_token %}
+
+                <button type="submit" class="btn btn-danger">
+                    Supprimer
+                </button>
+
+                <a href="{% url 'appointments' %}" class="btn btn-secondary">
+                    Annuler
+                </a>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

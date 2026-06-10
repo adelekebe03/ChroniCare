@@ -1,0 +1,101 @@
+{% extends "core/base.html" %}
+{% block title %}Mes notifications — ChroniCare{% endblock %}
+{% block page_title %}Mes notifications{% endblock %}
+
+{% block extra_css %}
+<style>
+  .cc-card { background:#fff; border:1px solid rgba(0,0,0,.07); border-radius:12px; overflow:hidden; margin-bottom:16px; }
+  .cc-card-header { padding:14px 18px; border-bottom:1px solid rgba(0,0,0,.06); display:flex; align-items:center; justify-content:space-between; }
+  .cc-card-title  { font-size:14px; font-weight:600; color:#1C2833; margin:0; display:flex; align-items:center; gap:8px; }
+
+  table.cc-table { width:100%; border-collapse:collapse; font-size:13px; }
+  table.cc-table th { padding:9px 14px; text-align:left; font-size:11px; font-weight:700; color:#A0AEC0; text-transform:uppercase; }
+  table.cc-table td { padding:11px 14px; border-bottom:1px solid rgba(0,0,0,.04); vertical-align:middle; }
+  table.cc-table tbody tr.unread { background:#F0F9FF; }
+  table.cc-table tbody tr:hover { background:#EFF6FF; }
+
+  .badge { display:inline-flex; font-size:11px; font-weight:600; padding:3px 9px; border-radius:20px; }
+  .b-urgent  { background:#FCEBEB; color:#791F1F; }
+  .b-warning { background:#FAEEDA; color:#633806; }
+  .b-info    { background:#E6F1FB; color:#0C447C; }
+  .b-lu      { background:#F3F4F6; color:#9CA3AF; }
+
+  .btn-cc { display:inline-flex; align-items:center; gap:5px; padding:6px 12px; border-radius:8px; font-size:12px; font-weight:600; text-decoration:none; border:none; cursor:pointer; transition:.15s; }
+  .btn-secondary { background:#fff; border:1px solid rgba(0,0,0,.12); color:#4A5568; }
+  .btn-secondary:hover { background:#F4F9FC; }
+  .btn-primary { background:#0C447C; color:#fff; }
+  .btn-primary:hover { background:#0E7490; color:#fff; }
+
+  .notif-dot { width:8px; height:8px; border-radius:50%; background:#C0392B; display:inline-block; margin-right:4px; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+{% if messages %}
+{% for msg in messages %}
+<div style="background:#E1F5EE;border-radius:9px;padding:12px 16px;margin-bottom:14px;font-size:13px;color:#085041;">
+  {{ msg }}
+</div>
+{% endfor %}
+{% endif %}
+
+<div class="cc-card">
+  <div class="cc-card-header">
+    <h3 class="cc-card-title">
+      <i class="ti ti-bell" style="color:#0C447C;font-size:17px;"></i>
+      Mes notifications
+      {% if non_lues > 0 %}
+        <span class="badge b-urgent">{{ non_lues }} non lue{{ non_lues|pluralize }}</span>
+      {% endif %}
+    </h3>
+    {% if non_lues > 0 %}
+    <form method="POST" action="{% url 'notification-mark-all-read' %}">
+      {% csrf_token %}
+      <button type="submit" class="btn-cc btn-primary">
+        <i class="ti ti-checks"></i> Tout marquer comme lu
+      </button>
+    </form>
+    {% endif %}
+  </div>
+
+  <table class="cc-table">
+    <thead>
+      <tr><th></th><th>Titre</th><th>Niveau</th><th>Date</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for n in notifications %}
+      <tr class="{% if not n.is_read %}unread{% endif %}">
+        <td style="width:12px;">{% if not n.is_read %}<span class="notif-dot"></span>{% endif %}</td>
+        <td>
+          <div style="font-weight:{% if not n.is_read %}700{% else %}400{% endif %};color:#1C2833;">
+            {{ n.title }}
+          </div>
+          <div style="font-size:12px;color:#717D7E;margin-top:2px;">
+            {{ n.message|truncatechars:80 }}
+          </div>
+        </td>
+        <td>
+          {% if n.level == 'urgent' %}<span class="badge b-urgent">Urgent</span>
+          {% elif n.level == 'warning' %}<span class="badge b-warning">Avertissement</span>
+          {% else %}<span class="badge b-info">Info</span>{% endif %}
+        </td>
+        <td style="font-size:11px;color:#A0AEC0;white-space:nowrap;">{{ n.created_at|date:"d/m/Y H:i" }}</td>
+        <td>
+          <a href="{% url 'notification-detail' n.pk %}" class="btn-cc btn-secondary">
+            <i class="ti ti-eye"></i> Voir
+          </a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="5" style="text-align:center;color:#A0AEC0;padding:28px;">
+          Aucune notification pour le moment.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

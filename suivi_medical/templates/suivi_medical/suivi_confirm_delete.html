@@ -1,0 +1,105 @@
+{% extends 'core/base.html' %}
+{% block title %}Supprimer le suivi — ChroniCare{% endblock %}
+
+{% block extra_css %}
+<style>
+  .cc-confirm-wrap { max-width:520px; margin:0 auto; }
+  .cc-confirm-card { background:#fff; border:1px solid rgba(0,0,0,.07); border-radius:12px; padding:32px 28px; text-align:center; }
+  .cc-confirm-icon { width:72px; height:72px; border-radius:50%; background:#FCEBEB; display:flex; align-items:center; justify-content:center; margin:0 auto 20px; }
+  .cc-confirm-icon i { font-size:34px; color:#C53030; }
+  .cc-confirm-card h2 { font-size:18px; font-weight:700; color:#1C2833; margin:0 0 10px; }
+  .cc-confirm-card p  { font-size:14px; color:#717D7E; margin:0 0 22px; line-height:1.6; }
+
+  .cc-suivi-info { background:#F4F9FC; border:1px solid rgba(0,0,0,.06); border-radius:10px; padding:16px; margin-bottom:20px; text-align:left; }
+  .cc-suivi-row { display:flex; justify-content:space-between; font-size:13px; padding:6px 0; border-bottom:1px solid rgba(0,0,0,.04); }
+  .cc-suivi-row:last-child { border-bottom:none; }
+  .cc-suivi-row .lbl { color:#717D7E; }
+  .cc-suivi-row .val { font-weight:600; color:#1C2833; }
+
+  .pt-avatar-sm { width:38px; height:38px; border-radius:50%; background:linear-gradient(135deg,#0F6E56,#1D9E75); color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; flex-shrink:0; display:inline-flex; margin-right:8px; }
+  .pt-avatar-sm.female { background:linear-gradient(135deg,#6B46C1,#9F7AEA); }
+
+  .statut-badge { display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:20px; font-size:11px; font-weight:600; }
+  .sb-stable   { background:#E6F1FB; color:#0C447C; }
+  .sb-ameliore { background:#E1F5EE; color:#085041; }
+  .sb-critique { background:#FCEBEB; color:#791F1F; }
+
+  .cc-warn-box { background:#FAEEDA; border:1px solid #F0E0C0; border-radius:9px; padding:12px 16px; margin-bottom:22px; font-size:13px; color:#633806; text-align:left; display:flex; gap:10px; align-items:flex-start; }
+  .cc-warn-box i { font-size:17px; flex-shrink:0; margin-top:1px; }
+
+  .cc-confirm-actions { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+  .btn-danger { background:#C53030; color:#fff; border:none; padding:10px 22px; border-radius:9px; font-size:13px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:7px; transition:.14s; }
+  .btn-danger:hover { background:#9B2222; }
+  .btn-cancel { background:#F4F9FC; color:#4A5568; border:1px solid rgba(0,0,0,.08); padding:10px 22px; border-radius:9px; font-size:13px; font-weight:600; text-decoration:none; display:inline-flex; align-items:center; gap:7px; }
+  .btn-cancel:hover { background:#E8EEF2; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="cc-confirm-wrap">
+  <div class="cc-confirm-card">
+
+    <div class="cc-confirm-icon"><i class="ti ti-trash"></i></div>
+    <h2>Supprimer le suivi médical</h2>
+    <p>Cette action est irréversible. Toutes les données de ce suivi seront définitivement supprimées.</p>
+
+    <div class="cc-suivi-info">
+      <div class="cc-suivi-row">
+        <span class="lbl">Patient</span>
+        <span class="val">
+          <span class="pt-avatar-sm {% if suivi.patient.sexe == 'F' %}female{% endif %}">
+            {{ suivi.patient.prenom|first|upper }}{{ suivi.patient.nom|first|upper }}
+          </span>
+          {{ suivi.patient.nom }} {{ suivi.patient.prenom }}
+        </span>
+      </div>
+      <div class="cc-suivi-row">
+        <span class="lbl">Date du suivi</span>
+        <span class="val">{{ suivi.created_at|date:"d/m/Y à H:i" }}</span>
+      </div>
+      <div class="cc-suivi-row">
+        <span class="lbl">Médecin</span>
+        <span class="val">
+          {% if suivi.medecin %}Dr. {{ suivi.medecin.get_full_name|default:suivi.medecin.username }}
+          {% else %}<span style="color:#A0AEC0;">Non renseigné</span>{% endif %}
+        </span>
+      </div>
+      <div class="cc-suivi-row">
+        <span class="lbl">Statut</span>
+        <span class="val">
+          <span class="statut-badge
+            {% if suivi.statut == 'stable' %}sb-stable
+            {% elif suivi.statut == 'ameliore' %}sb-ameliore
+            {% else %}sb-critique{% endif %}">
+            {{ suivi.get_statut_display }}
+          </span>
+        </span>
+      </div>
+      {% if suivi.imc %}
+      <div class="cc-suivi-row">
+        <span class="lbl">IMC enregistré</span>
+        <span class="val">{{ suivi.imc }} kg/m²</span>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="cc-warn-box">
+      <i class="ti ti-alert-triangle"></i>
+      <div>Les constantes vitales, observations et les prescriptions associées à ce suivi seront également perdues.</div>
+    </div>
+
+    <form method="POST">
+      {% csrf_token %}
+      <div class="cc-confirm-actions">
+        <button type="submit" class="btn-danger">
+          <i class="ti ti-trash"></i> Oui, supprimer définitivement
+        </button>
+        <a href="{% url 'suivi-detail' suivi.pk %}" class="btn-cancel">
+          <i class="ti ti-x"></i> Annuler
+        </a>
+      </div>
+    </form>
+
+  </div>
+</div>
+{% endblock %}

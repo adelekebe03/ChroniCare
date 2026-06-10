@@ -1,0 +1,127 @@
+{% extends "core/base.html" %}
+{% block title %}Alertes médicales — ChroniCare{% endblock %}
+{% block page_title %}Alertes médicales{% endblock %}
+
+{% block extra_css %}
+<style>
+  .filter-bar { background:#fff; border:1px solid rgba(0,0,0,.07); border-radius:10px; padding:14px 18px; margin-bottom:18px; display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; }
+  .filter-bar label { font-size:11px; font-weight:700; color:#A0AEC0; text-transform:uppercase; display:block; margin-bottom:3px; }
+  .filter-bar select { border-radius:7px; border:1px solid rgba(0,0,0,.15); padding:6px 10px; font-size:13px; }
+  .btn-filter { display:inline-flex; align-items:center; gap:5px; padding:7px 14px; border-radius:8px; font-size:13px; font-weight:600; border:none; cursor:pointer; background:#1C2833; color:#fff; }
+  .btn-filter:hover { background:#0f1923; }
+
+  .card { background:#fff; border:1px solid rgba(0,0,0,.07); border-radius:12px; overflow:hidden; }
+  table.cc-table { width:100%; border-collapse:collapse; font-size:13px; }
+  table.cc-table th { padding:9px 14px; text-align:left; font-size:11px; font-weight:700; color:#A0AEC0; text-transform:uppercase; }
+  table.cc-table td { padding:11px 14px; border-bottom:1px solid rgba(0,0,0,.04); vertical-align:middle; }
+  table.cc-table tbody tr:hover { background:#FEF2F2; }
+
+  .badge { display:inline-flex; font-size:11px; font-weight:600; padding:3px 9px; border-radius:20px; }
+  .b-critical { background:#FCEBEB; color:#791F1F; }
+  .b-warning  { background:#FAEEDA; color:#633806; }
+  .b-info     { background:#E6F1FB; color:#0C447C; }
+  .b-ok       { background:#E1F5EE; color:#085041; }
+  .b-resolue  { background:#E1F5EE; color:#085041; }
+
+  .btn-cc { display:inline-flex; align-items:center; gap:5px; padding:5px 10px; border-radius:7px; font-size:11px; font-weight:600; text-decoration:none; border:none; cursor:pointer; transition:.15s; }
+  .btn-secondary { background:#fff; border:1px solid rgba(0,0,0,.12); color:#4A5568; }
+  .btn-secondary:hover { background:#F4F9FC; }
+  .btn-danger { background:#FCEBEB; color:#791F1F; border:1px solid #F5C6CB; }
+
+  .card-header { padding:14px 18px; border-bottom:1px solid rgba(0,0,0,.06); display:flex; align-items:center; justify-content:space-between; }
+  .card-title { font-size:14px; font-weight:600; color:#1C2833; margin:0; display:flex; align-items:center; gap:8px; }
+  .btn-back { display:inline-flex; align-items:center; gap:6px; padding:8px 14px; border-radius:9px; font-size:13px; font-weight:600; text-decoration:none; background:#fff; border:1px solid rgba(0,0,0,.12); color:#4A5568; }
+  .btn-back:hover { background:#F4F9FC; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Filtres -->
+<form method="GET" class="filter-bar">
+  <div>
+    <label>Sévérité</label>
+    <select name="type">
+      <option value="">Toutes</option>
+      {% for val, label in alert_types %}
+      <option value="{{ val }}" {% if filtre_type == val %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div>
+    <label>Source</label>
+    <select name="source">
+      <option value="">Toutes</option>
+      {% for val, label in sources %}
+      <option value="{{ val }}" {% if filtre_source == val %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div>
+    <label>Statut</label>
+    <select name="resolved">
+      <option value="false" {% if filtre_resolved == 'false' %}selected{% endif %}>Non résolues</option>
+      <option value="true"  {% if filtre_resolved == 'true' %}selected{% endif %}>Résolues</option>
+      <option value=""      {% if not filtre_resolved %}selected{% endif %}>Toutes</option>
+    </select>
+  </div>
+  <button type="submit" class="btn-filter"><i class="ti ti-filter"></i> Filtrer</button>
+  <a href="{% url 'alert-list' %}" class="btn-cc btn-secondary" style="align-self:flex-end;">Réinitialiser</a>
+</form>
+
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title"><i class="ti ti-alert-circle" style="color:#C0392B;font-size:17px;"></i> Alertes médicales</h3>
+    <a href="{% url 'alerts-dashboard' %}" class="btn-back"><i class="ti ti-arrow-left"></i> Tableau de bord</a>
+  </div>
+  <table class="cc-table">
+    <thead>
+      <tr><th>Patient</th><th>Sévérité</th><th>Source</th><th>Message</th><th>Accusée</th><th>Statut</th><th>Date</th><th>Actions</th></tr>
+    </thead>
+    <tbody>
+      {% for a in alertes %}
+      <tr>
+        <td><strong>{{ a.patient.nom }} {{ a.patient.prenom }}</strong></td>
+        <td>
+          {% if a.alert_type == 'critical' %}<span class="badge b-critical">Critique</span>
+          {% elif a.alert_type == 'warning' %}<span class="badge b-warning">Avertissement</span>
+          {% else %}<span class="badge b-info">Info</span>{% endif %}
+        </td>
+        <td>{{ a.get_source_display }}</td>
+        <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="{{ a.message }}">
+          {{ a.message|truncatechars:60 }}
+        </td>
+        <td>
+          {% if a.acknowledged_by %}
+            <span class="badge b-ok" title="Par {{ a.acknowledged_by.get_full_name|default:a.acknowledged_by.username }}">
+              Oui
+            </span>
+          {% else %}
+            <span class="badge b-critical">Non</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if a.is_resolved %}
+            <span class="badge b-resolue">Résolue</span>
+          {% else %}
+            <span class="badge b-warning">Active</span>
+          {% endif %}
+        </td>
+        <td style="font-size:11px;color:#A0AEC0;white-space:nowrap;">{{ a.created_at|date:"d/m/Y H:i" }}</td>
+        <td>
+          <a href="{% url 'alert-detail' a.pk %}" class="btn-cc btn-secondary">
+            <i class="ti ti-eye"></i> Voir
+          </a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="8" style="text-align:center;color:#A0AEC0;padding:28px;">
+          Aucune alerte correspondant aux filtres sélectionnés.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

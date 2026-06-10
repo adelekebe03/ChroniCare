@@ -1,0 +1,175 @@
+{% extends 'core/base.html' %}
+{% block title %}{{ user_obj.get_full_name|default:user_obj.username }} — ChroniCare{% endblock %}
+{% block page_title %}Détail utilisateur{% endblock %}
+
+{% block extra_css %}
+<style>
+  .cc-detail-wrap { display:grid; grid-template-columns:280px 1fr; gap:20px; }
+  @media(max-width:768px){ .cc-detail-wrap{ grid-template-columns:1fr; } }
+
+  .cc-identity-card, .cc-info-card {
+    background:#fff; border:1px solid rgba(0,0,0,.07); border-radius:12px; overflow:hidden;
+  }
+  .cc-identity-card { padding:28px 24px; text-align:center; }
+
+  .cc-avatar-lg {
+    width:88px; height:88px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-size:30px; font-weight:700; color:#fff;
+    margin:0 auto 14px;
+  }
+  .av-doctor     { background:linear-gradient(135deg,#085041,#1D9E75); }
+  .av-nurse      { background:linear-gradient(135deg,#0C447C,#1D6BAF); }
+  .av-patient    { background:linear-gradient(135deg,#633806,#B47129); }
+  .av-pharmacist { background:linear-gradient(135deg,#4A2E7B,#6B46C1); }
+  .av-lab        { background:linear-gradient(135deg,#075568,#0E7490); }
+  .av-admin      { background:linear-gradient(135deg,#791F1F,#C53030); }
+  .cc-avatar-lg img { width:88px; height:88px; border-radius:50%; object-fit:cover; }
+
+  .cc-user-name     { font-size:17px; font-weight:700; color:#1C2833; margin:0 0 3px; }
+  .cc-user-username { font-size:12px; color:#A0AEC0; margin-bottom:10px; }
+
+  .role-badge { display:inline-flex; font-size:11px; font-weight:600; padding:4px 12px; border-radius:20px; margin-bottom:16px; }
+  .rb-admin      { background:#FCEBEB; color:#791F1F; }
+  .rb-doctor     { background:#E1F5EE; color:#085041; }
+  .rb-nurse      { background:#E6F1FB; color:#0C447C; }
+  .rb-patient    { background:#FAEEDA; color:#633806; }
+  .rb-pharmacist { background:#EDE7F6; color:#4A2E7B; }
+  .rb-lab        { background:#E0F7FA; color:#075568; }
+
+  .cc-status-row { display:flex; align-items:center; justify-content:center; gap:6px; font-size:12px; color:#717D7E; margin-bottom:20px; }
+  .status-dot { width:8px; height:8px; border-radius:50%; }
+  .dot-on { background:#1D9E75; }
+  .dot-off { background:#E53E3E; }
+
+  .cc-card-actions { display:flex; flex-direction:column; gap:8px; }
+  .cc-btn-full { display:flex; align-items:center; justify-content:center; gap:8px; padding:9px 16px; border-radius:9px; font-size:13px; font-weight:600; text-decoration:none; transition:.14s; }
+  .btn-edit-full   { background:#E6F1FB; color:#0C447C; }
+  .btn-edit-full:hover   { background:#C5D8EF; color:#0C447C; }
+  .btn-delete-full { background:#FCEBEB; color:#791F1F; }
+  .btn-delete-full:hover { background:#F0D5D5; color:#791F1F; }
+  .btn-back-full   { background:#F4F9FC; color:#4A5568; border:1px solid rgba(0,0,0,.08); }
+  .btn-back-full:hover { background:#E8EEF2; }
+
+  .cc-info-card { display:flex; flex-direction:column; }
+  .cc-info-header { padding:16px 20px; border-bottom:1px solid rgba(0,0,0,.06); display:flex; align-items:center; gap:8px; }
+  .cc-info-header h3 { font-size:14px; font-weight:600; color:#1C2833; margin:0; }
+  .cc-info-header i { color:#0F6E56; font-size:17px; }
+  .cc-info-body { padding:20px; }
+
+  .cc-dl { display:grid; grid-template-columns:1fr 1fr; gap:14px 24px; }
+  @media(max-width:576px){ .cc-dl{ grid-template-columns:1fr; } }
+  .cc-field label { display:block; font-size:11px; font-weight:700; color:#A0AEC0; text-transform:uppercase; margin-bottom:3px; letter-spacing:.04em; }
+  .cc-field span  { font-size:14px; color:#1C2833; }
+  .cc-field-full  { grid-column:1/-1; }
+
+  .cc-divider { height:1px; background:rgba(0,0,0,.05); margin:16px 0; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="cc-detail-wrap">
+
+  <!-- Carte identité -->
+  <div class="cc-identity-card">
+    {% if user_obj.photo %}
+      <div class="cc-avatar-lg" style="padding:0;background:none;">
+        <img src="{{ user_obj.photo.url }}" alt="{{ user_obj.username }}">
+      </div>
+    {% else %}
+      <div class="cc-avatar-lg av-{{ user_obj.role }}">
+        {{ user_obj.first_name|first|upper }}{{ user_obj.last_name|first|upper }}
+      </div>
+    {% endif %}
+
+    <div class="cc-user-name">{{ user_obj.get_full_name|default:user_obj.username }}</div>
+    <div class="cc-user-username">@{{ user_obj.username }}</div>
+
+    <span class="role-badge rb-{{ user_obj.role }}">{{ user_obj.get_role_display }}</span>
+
+    <div class="cc-status-row">
+      {% if user_obj.is_active_status %}
+        <span class="status-dot dot-on"></span> Compte actif
+      {% else %}
+        <span class="status-dot dot-off"></span> Compte inactif
+      {% endif %}
+    </div>
+
+    <div class="cc-card-actions">
+      <a href="{% url 'user-edit' user_obj.id %}" class="cc-btn-full btn-edit-full">
+        <i class="ti ti-edit"></i> Modifier
+      </a>
+      <a href="{% url 'user-delete' user_obj.id %}" class="cc-btn-full btn-delete-full">
+        <i class="ti ti-trash"></i> Supprimer
+      </a>
+      <a href="{% url 'user-list' %}" class="cc-btn-full btn-back-full">
+        <i class="ti ti-arrow-left"></i> Retour à la liste
+      </a>
+    </div>
+  </div>
+
+  <!-- Informations détaillées -->
+  <div class="cc-info-card">
+    <div class="cc-info-header">
+      <i class="ti ti-user"></i>
+      <h3>Informations personnelles</h3>
+    </div>
+    <div class="cc-info-body">
+      <div class="cc-dl">
+        <div class="cc-field">
+          <label>Prénom</label>
+          <span>{{ user_obj.first_name|default:"—" }}</span>
+        </div>
+        <div class="cc-field">
+          <label>Nom</label>
+          <span>{{ user_obj.last_name|default:"—" }}</span>
+        </div>
+        <div class="cc-field">
+          <label>Identifiant</label>
+          <span>{{ user_obj.username }}</span>
+        </div>
+        <div class="cc-field">
+          <label>Adresse e-mail</label>
+          <span>{{ user_obj.email|default:"—" }}</span>
+        </div>
+        <div class="cc-field">
+          <label>Téléphone / Contact</label>
+          <span>{{ user_obj.contact|default:"—" }}</span>
+        </div>
+        <div class="cc-field">
+          <label>Rôle</label>
+          <span>{{ user_obj.get_role_display }}</span>
+        </div>
+        {% if user_obj.role == 'doctor' %}
+        <div class="cc-field cc-field-full">
+          <label>Spécialité médicale</label>
+          <span>{{ user_obj.specialite|default:"—" }}</span>
+        </div>
+        {% endif %}
+      </div>
+
+      <div class="cc-divider"></div>
+
+      <div class="cc-dl">
+        <div class="cc-field">
+          <label>Membre depuis</label>
+          <span>{{ user_obj.date_joined|date:"d/m/Y" }}</span>
+        </div>
+        <div class="cc-field">
+          <label>Dernière mise à jour</label>
+          <span>{{ user_obj.updated_at|date:"d/m/Y H:i"|default:"—" }}</span>
+        </div>
+        <div class="cc-field">
+          <label>Statut Django (is_active)</label>
+          <span>{% if user_obj.is_active %}Oui{% else %}Non{% endif %}</span>
+        </div>
+        <div class="cc-field">
+          <label>Statut applicatif</label>
+          <span>{% if user_obj.is_active_status %}Actif{% else %}Inactif{% endif %}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

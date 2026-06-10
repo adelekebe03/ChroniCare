@@ -1,0 +1,328 @@
+{% extends 'core/base.html' %}
+{% block title %}Suivi — {{ suivi.patient.nom }} {{ suivi.patient.prenom }} — ChroniCare{% endblock %}
+
+{% block extra_css %}
+<style>
+  .cc-layout { display:grid; grid-template-columns:280px 1fr; gap:20px; }
+  @media(max-width:900px){ .cc-layout{ grid-template-columns:1fr; } }
+
+  /* Carte patient */
+  .cc-id-card { background:#fff; border:1px solid rgba(0,0,0,.07); border-radius:12px; padding:24px; align-self:start; }
+  .pt-avatar-lg { width:64px; height:64px; border-radius:50%; background:linear-gradient(135deg,#0F6E56,#1D9E75); color:#fff; display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:700; margin:0 auto 12px; }
+  .pt-avatar-lg.female { background:linear-gradient(135deg,#6B46C1,#9F7AEA); }
+  .cc-patient-name { font-size:16px; font-weight:700; color:#1C2833; text-align:center; margin-bottom:4px; }
+  .cc-patient-sub { font-size:12px; color:#A0AEC0; text-align:center; margin-bottom:14px; }
+
+  .statut-badge-lg { display:inline-flex; align-items:center; gap:6px; padding:6px 14px; border-radius:20px; font-size:12px; font-weight:600; width:100%; justify-content:center; margin-bottom:14px; }
+  .sb-stable   { background:#E6F1FB; color:#0C447C; }
+  .sb-ameliore { background:#E1F5EE; color:#085041; }
+  .sb-critique { background:#FCEBEB; color:#791F1F; }
+
+  .cc-info-row { display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid rgba(0,0,0,.04); font-size:13px; }
+  .cc-info-row:last-child { border-bottom:none; }
+  .cc-info-row .lbl { color:#717D7E; }
+  .cc-info-row .val { color:#1C2833; font-weight:600; text-align:right; }
+
+  .cc-actions-card { display:flex; flex-direction:column; gap:8px; margin-top:14px; padding-top:14px; border-top:1px solid rgba(0,0,0,.05); }
+  .cc-btn-full { display:flex; align-items:center; justify-content:center; gap:7px; padding:9px 16px; border-radius:9px; font-size:13px; font-weight:600; text-decoration:none; transition:.14s; }
+  .btn-presc-full  { background:#EDE9FE; color:#4C1D95; } .btn-presc-full:hover  { background:#DDD6FE; color:#4C1D95; }
+  .btn-edit-full   { background:#FAEEDA; color:#633806; } .btn-edit-full:hover   { background:#F0E0C0; color:#633806; }
+  .btn-delete-full { background:#FCEBEB; color:#791F1F; } .btn-delete-full:hover { background:#F0D5D5; color:#791F1F; }
+  .btn-back-full   { background:#F4F9FC; color:#4A5568; border:1px solid rgba(0,0,0,.08); } .btn-back-full:hover { background:#E8EEF2; }
+
+  /* Panneau droit */
+  .cc-right { display:flex; flex-direction:column; gap:16px; }
+  .cc-section { background:#fff; border:1px solid rgba(0,0,0,.07); border-radius:12px; overflow:hidden; }
+  .cc-section-header { padding:14px 18px; border-bottom:1px solid rgba(0,0,0,.06); display:flex; align-items:center; gap:8px; }
+  .cc-section-header h3 { font-size:14px; font-weight:600; color:#1C2833; margin:0; }
+  .cc-section-header i { font-size:17px; color:#0F6E56; }
+  .cc-section-body { padding:16px 18px; }
+
+  /* Grille vitaux */
+  .cc-vitals { display:grid; grid-template-columns:repeat(auto-fit,minmax(110px,1fr)); gap:10px; }
+  .cc-vital { background:#F4F9FC; border-radius:8px; padding:12px; text-align:center; }
+  .cc-vital-label { font-size:10px; font-weight:700; color:#A0AEC0; text-transform:uppercase; margin-bottom:4px; }
+  .cc-vital-val { font-size:20px; font-weight:700; color:#1C2833; line-height:1; }
+  .cc-vital-unit { font-size:10px; color:#717D7E; margin-top:2px; }
+  .cc-vital.ok   { border:1px solid #C5E5D5; }
+  .cc-vital.ok .cc-vital-val { color:#085041; }
+  .cc-vital.warn { background:#FAEEDA; border:1px solid #F0E0C0; }
+  .cc-vital.warn .cc-vital-val { color:#633806; }
+  .cc-vital.crit { background:#FCEBEB; border:1px solid #F0D5D5; }
+  .cc-vital.crit .cc-vital-val { color:#791F1F; }
+  .cc-vital.empty { opacity:.4; }
+
+  /* Rendez-vous */
+  .cc-rdv-box { background:#F4F9FC; border:1px solid rgba(0,0,0,.06); border-radius:8px; padding:14px; }
+  .cc-rdv-row { display:flex; justify-content:space-between; font-size:13px; padding:5px 0; border-bottom:1px solid rgba(0,0,0,.04); }
+  .cc-rdv-row:last-child { border-bottom:none; }
+  .cc-rdv-row .lbl { color:#717D7E; }
+  .cc-rdv-row .val { font-weight:600; color:#1C2833; }
+
+  .rdv-status { display:inline-flex; padding:2px 8px; border-radius:20px; font-size:11px; font-weight:600; }
+  .rdv-planifie { background:#E1F5EE; color:#085041; }
+  .rdv-effectue { background:#E6F1FB; color:#0C447C; }
+  .rdv-annule   { background:#FCEBEB; color:#791F1F; }
+
+  /* Observations */
+  .cc-obs { background:#F4F9FC; border-radius:8px; padding:14px; font-size:13px; color:#4A5568; line-height:1.7; border-left:3px solid #0F6E56; }
+
+  .type-badge { display:inline-flex; padding:2px 8px; border-radius:20px; font-size:11px; font-weight:600; }
+  .type-rdv    { background:#EDE9FE; color:#4C1D95; }
+  .type-direct { background:#E6F1FB; color:#0C447C; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="cc-layout">
+
+  <!-- ── Carte patient ─────────────────────────────────────────── -->
+  <div class="cc-id-card">
+    <div class="pt-avatar-lg {% if suivi.patient.sexe == 'F' %}female{% endif %}">
+      {{ suivi.patient.prenom|first|upper }}{{ suivi.patient.nom|first|upper }}
+    </div>
+    <div class="cc-patient-name">{{ suivi.patient.nom }} {{ suivi.patient.prenom }}</div>
+    <div class="cc-patient-sub">{{ suivi.patient.get_sexe_display }} · {{ suivi.patient.groupe_sanguin }}</div>
+
+    <div class="statut-badge-lg
+      {% if suivi.statut == 'stable' %}sb-stable
+      {% elif suivi.statut == 'ameliore' %}sb-ameliore
+      {% else %}sb-critique{% endif %}">
+      <i class="ti ti-{% if suivi.statut == 'stable' %}minus{% elif suivi.statut == 'ameliore' %}trending-up{% else %}alert-triangle{% endif %}"></i>
+      {{ suivi.get_statut_display }}
+    </div>
+
+    <div class="cc-info-row">
+      <span class="lbl">Date du suivi</span>
+      <span class="val" style="font-size:11px;">{{ suivi.created_at|date:"d/m/Y H:i" }}</span>
+    </div>
+    <div class="cc-info-row">
+      <span class="lbl">Type</span>
+      <span class="val"><span class="type-badge type-{{ suivi.type_suivi }}">{{ suivi.get_type_suivi_display }}</span></span>
+    </div>
+    <div class="cc-info-row">
+      <span class="lbl">Médecin</span>
+      <span class="val" style="font-size:11px;">
+        {% if suivi.medecin %}Dr. {{ suivi.medecin.get_full_name|default:suivi.medecin.username }}
+        {% else %}<span style="color:#A0AEC0;">—</span>{% endif %}
+      </span>
+    </div>
+
+    <div class="cc-actions-card">
+      {% if request.user.role == 'admin' or request.user.role == 'doctor' %}
+      <a href="{% url 'creer-prescription' suivi.id %}" class="cc-btn-full btn-presc-full">
+        <i class="ti ti-prescription"></i> Créer une ordonnance
+      </a>
+      {% endif %}
+      {% if request.user.role != 'patient' %}
+      <a href="{% url 'suivi-update' suivi.id %}" class="cc-btn-full btn-edit-full">
+        <i class="ti ti-edit"></i> Modifier
+      </a>
+      <a href="{% url 'suivi-delete' suivi.id %}" class="cc-btn-full btn-delete-full">
+        <i class="ti ti-trash"></i> Supprimer
+      </a>
+      {% endif %}
+      <a href="{% url 'patient-detail' suivi.patient.id %}" class="cc-btn-full btn-back-full">
+        <i class="ti ti-user"></i> Fiche patient
+      </a>
+      <a href="{% url 'suivi-list' %}" class="cc-btn-full btn-back-full">
+        <i class="ti ti-arrow-left"></i> Liste des suivis
+      </a>
+    </div>
+  </div>
+
+  <!-- ── Panneau droit ─────────────────────────────────────────── -->
+  <div class="cc-right">
+
+    <!-- Rendez-vous associé -->
+    {% if suivi.appointment %}
+    <div class="cc-section">
+      <div class="cc-section-header">
+        <i class="ti ti-calendar-event"></i>
+        <h3>Rendez-vous associé</h3>
+      </div>
+      <div class="cc-section-body">
+        <div class="cc-rdv-box">
+          <div class="cc-rdv-row">
+            <span class="lbl">Date</span>
+            <span class="val">{{ suivi.appointment.date|date:"d/m/Y" }} à {{ suivi.appointment.heure|time:"H:i" }}</span>
+          </div>
+          <div class="cc-rdv-row">
+            <span class="lbl">Motif</span>
+            <span class="val">{{ suivi.appointment.motif|default:"Non spécifié" }}</span>
+          </div>
+          <div class="cc-rdv-row">
+            <span class="lbl">Statut</span>
+            <span class="val">
+              <span class="rdv-status rdv-{{ suivi.appointment.status }}">
+                {{ suivi.appointment.get_status_display }}
+              </span>
+            </span>
+          </div>
+          {% if suivi.appointment.notes %}
+          <div class="cc-rdv-row">
+            <span class="lbl">Notes</span>
+            <span class="val" style="max-width:60%;text-align:right;font-size:12px;">{{ suivi.appointment.notes }}</span>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Constantes vitales -->
+    <div class="cc-section">
+      <div class="cc-section-header">
+        <i class="ti ti-heart-rate-monitor"></i>
+        <h3>Constantes vitales</h3>
+      </div>
+      <div class="cc-section-body">
+        <div class="cc-vitals">
+
+          {% if suivi.poids %}
+          <div class="cc-vital ok">
+            <div class="cc-vital-label">Poids</div>
+            <div class="cc-vital-val">{{ suivi.poids }}</div>
+            <div class="cc-vital-unit">kg</div>
+          </div>
+          {% endif %}
+
+          {% if suivi.taille %}
+          <div class="cc-vital">
+            <div class="cc-vital-label">Taille</div>
+            <div class="cc-vital-val">{{ suivi.taille }}</div>
+            <div class="cc-vital-unit">m</div>
+          </div>
+          {% endif %}
+
+          {% if suivi.imc %}
+          <div class="cc-vital {% if suivi.imc < 18.5 or suivi.imc > 30 %}crit{% elif suivi.imc > 25 %}warn{% else %}ok{% endif %}">
+            <div class="cc-vital-label">IMC</div>
+            <div class="cc-vital-val">{{ suivi.imc }}</div>
+            <div class="cc-vital-unit">
+              {% if suivi.imc < 18.5 %}Insuffisance
+              {% elif suivi.imc <= 24.9 %}Normal
+              {% elif suivi.imc <= 29.9 %}Surpoids
+              {% else %}Obésité{% endif %}
+            </div>
+          </div>
+          {% endif %}
+
+          {% if suivi.tension_systolique and suivi.tension_diastolique %}
+          <div class="cc-vital {% if suivi.tension_systolique > 14 %}warn{% else %}ok{% endif %}">
+            <div class="cc-vital-label">Tension</div>
+            <div class="cc-vital-val" style="font-size:16px;">{{ suivi.tension_systolique }}/{{ suivi.tension_diastolique }}</div>
+            <div class="cc-vital-unit">mmHg</div>
+          </div>
+          {% endif %}
+
+          {% if suivi.glycemie %}
+          <div class="cc-vital {% if suivi.glycemie > 1.26 %}crit{% elif suivi.glycemie > 1.1 %}warn{% else %}ok{% endif %}">
+            <div class="cc-vital-label">Glycémie</div>
+            <div class="cc-vital-val">{{ suivi.glycemie }}</div>
+            <div class="cc-vital-unit">g/L</div>
+          </div>
+          {% endif %}
+
+          {% if suivi.cd4 %}
+          <div class="cc-vital {% if suivi.cd4 < 200 %}crit{% elif suivi.cd4 < 350 %}warn{% else %}ok{% endif %}">
+            <div class="cc-vital-label">CD4</div>
+            <div class="cc-vital-val">{{ suivi.cd4|floatformat:0 }}</div>
+            <div class="cc-vital-unit">cells/mm³</div>
+          </div>
+          {% endif %}
+
+          {% if suivi.charge_virale %}
+          <div class="cc-vital {% if suivi.charge_virale > 1000 %}crit{% elif suivi.charge_virale > 200 %}warn{% else %}ok{% endif %}">
+            <div class="cc-vital-label">Charge virale</div>
+            <div class="cc-vital-val" style="font-size:14px;">{{ suivi.charge_virale|floatformat:0 }}</div>
+            <div class="cc-vital-unit">copies/mL</div>
+          </div>
+          {% endif %}
+
+          {% if not suivi.poids and not suivi.imc and not suivi.tension_systolique and not suivi.glycemie and not suivi.cd4 %}
+          <p style="color:#A0AEC0;font-size:13px;text-align:center;padding:12px 0;grid-column:1/-1;">
+            Aucune constante vitale enregistrée.
+          </p>
+          {% endif %}
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Observations -->
+    <div class="cc-section">
+      <div class="cc-section-header">
+        <i class="ti ti-notes"></i>
+        <h3>Observations médicales</h3>
+      </div>
+      <div class="cc-section-body">
+        {% if suivi.observations %}
+          <div class="cc-obs">{{ suivi.observations }}</div>
+        {% else %}
+          <p style="color:#A0AEC0;font-size:13px;text-align:center;padding:8px 0;">Aucune observation enregistrée.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Analyses prescrites ───────────────────────────────────────── -->
+    <div class="cc-section">
+      <div class="cc-section-header">
+        <i class="ti ti-flask"></i>
+        <h3>Analyses de laboratoire</h3>
+        {% if request.user.role == 'admin' or request.user.role == 'doctor' %}
+        <a href="{% url 'labtest-create-from-suivi' suivi.pk %}" class="cc-section-link">
+          <i class="ti ti-plus"></i> Prescrire une analyse
+        </a>
+        {% endif %}
+      </div>
+      <div class="cc-section-body">
+        {% with analyses=suivi.analyses.all %}
+        {% if analyses %}
+          {% for analyse in analyses %}
+          <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(0,0,0,.04);">
+            <div style="width:36px;height:36px;border-radius:8px;background:#E0F7FA;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <i class="ti ti-flask" style="color:#075568;font-size:17px;"></i>
+            </div>
+            <div style="flex:1;">
+              <div style="font-size:13px;font-weight:600;color:#1C2833;">
+                {{ analyse.get_type_test_display }}
+                {% if analyse.urgence %}<span style="background:#FCEBEB;color:#791F1F;font-size:10px;font-weight:600;padding:1px 6px;border-radius:20px;margin-left:6px;">URGENT</span>{% endif %}
+              </div>
+              <div style="font-size:11px;color:#A0AEC0;">
+                Prescrit le {{ analyse.date_test|date:"d/m/Y" }}
+                {% if analyse.maladie %} · {{ analyse.maladie.nom }}{% endif %}
+              </div>
+            </div>
+            <div>
+              {% if analyse.status == 'en_attente' %}
+                <span style="background:#E6F1FB;color:#0C447C;font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;">En attente</span>
+              {% elif analyse.status == 'normal' %}
+                <span style="background:#E1F5EE;color:#085041;font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;">Normal</span>
+              {% elif analyse.status == 'anormal' %}
+                <span style="background:#FAEEDA;color:#633806;font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;">Anormal</span>
+              {% elif analyse.status == 'critique' %}
+                <span style="background:#FCEBEB;color:#791F1F;font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;">Critique</span>
+              {% endif %}
+            </div>
+            <a href="{% url 'labtest-detail' analyse.pk %}" style="font-size:12px;color:#0F6E56;text-decoration:none;flex-shrink:0;">
+              <i class="ti ti-eye"></i>
+            </a>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div style="text-align:center;padding:20px;color:#A0AEC0;font-size:13px;">
+            <i class="ti ti-flask" style="font-size:28px;display:block;margin-bottom:8px;"></i>
+            Aucune analyse prescrite pour ce suivi.
+            {% if request.user.role == 'admin' or request.user.role == 'doctor' %}
+              <br><a href="{% url 'labtest-create-from-suivi' suivi.pk %}" style="color:#0F6E56;font-weight:600;">Prescrire une analyse →</a>
+            {% endif %}
+          </div>
+        {% endif %}
+        {% endwith %}
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

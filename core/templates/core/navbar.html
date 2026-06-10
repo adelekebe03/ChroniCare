@@ -1,0 +1,195 @@
+<style>
+  .cc-navbar {
+    position: fixed; top: 0; left: 0; right: 0;
+    height: var(--cc-nav-h);
+    background: var(--cc-teal-dark);
+    display: flex; align-items: center;
+    padding: 0 20px; z-index: 1040;
+    box-shadow: 0 1px 8px rgba(0,0,0,.18);
+  }
+  .cc-navbar-brand {
+    display: flex; align-items: center; gap: 9px;
+    text-decoration: none; margin-right: 20px;
+  }
+  .cc-brand-icon {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: rgba(255,255,255,.15);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .cc-brand-icon i { font-size: 18px; color: #9FE1CB; }
+  .cc-brand-name { font-size: 17px; font-weight: 600; color: #fff; }
+  .cc-brand-tag  { font-size: 10px; color: #9FE1CB; letter-spacing: .5px; margin-top: -3px; }
+  .cc-nav-div    { width: 1px; height: 22px; background: rgba(255,255,255,.15); margin: 0 16px; }
+  .cc-breadcrumb { font-size: 13px; color: rgba(255,255,255,.6); }
+  .cc-breadcrumb span { color: #fff; font-weight: 500; }
+  .cc-nav-right  { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+  .cc-icon-btn {
+    width: 34px; height: 34px; border-radius: 8px;
+    background: rgba(255,255,255,.1); border: none;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; position: relative; color: #fff;
+    transition: background .15s;
+    text-decoration: none;
+  }
+  .cc-icon-btn:hover { background: rgba(255,255,255,.2); }
+  .cc-icon-btn i { font-size: 18px; }
+  .cc-notif-badge {
+    position: absolute; top: 3px; right: 3px;
+    min-width: 16px; height: 16px; border-radius: 20px;
+    background: #E24B4A; border: 1.5px solid var(--cc-teal-dark);
+    font-size: 9px; font-weight: 700; color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    padding: 0 3px; line-height: 1;
+  }
+  .cc-profile-btn {
+    display: flex; align-items: center; gap: 8px;
+    background: rgba(255,255,255,.1); border: none;
+    border-radius: 8px; padding: 4px 10px 4px 5px;
+    cursor: pointer; color: #fff; transition: background .15s;
+  }
+  .cc-profile-btn:hover { background: rgba(255,255,255,.2); }
+  .cc-avatar {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: #1D9E75;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 600; color: #fff; flex-shrink: 0;
+  }
+  .cc-profile-name { font-size: 13px; font-weight: 500; color: #fff; max-width: 100px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cc-profile-role { font-size: 10px; color: #9FE1CB; }
+  .cc-dropdown {
+    position: absolute; top: calc(var(--cc-nav-h) - 4px); right: 16px;
+    background: #fff; border: 1px solid rgba(0,0,0,.08);
+    border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,.12);
+    min-width: 200px; z-index: 2000; display: none; overflow: hidden;
+  }
+  .cc-dropdown.show { display: block; }
+  .cc-dropdown-header { padding: 12px 16px; border-bottom: 1px solid rgba(0,0,0,.06); }
+  .cc-dropdown-header .name { font-size: 13px; font-weight: 600; color: #1C2833; }
+  .cc-dropdown-header .role { font-size: 11px; color: #717D7E; }
+  .cc-dropdown-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 16px; font-size: 13px; color: #1C2833;
+    text-decoration: none; transition: background .12s;
+  }
+  .cc-dropdown-item:hover { background: #F4F9FC; color: #0F6E56; }
+  .cc-dropdown-item i { font-size: 16px; color: #717D7E; }
+  .cc-dropdown-item:hover i { color: #0F6E56; }
+  .cc-dropdown-divider { height: 1px; background: rgba(0,0,0,.06); margin: 4px 0; }
+  .cc-dropdown-item.danger { color: #A32D2D; }
+  .cc-dropdown-item.danger i { color: #A32D2D; }
+  .cc-dropdown-item.danger:hover { background: #FCEBEB; }
+  .cc-sidebar-toggler {
+    display: none; background: rgba(255,255,255,.1); border: none;
+    border-radius: 8px; width: 34px; height: 34px;
+    align-items: center; justify-content: center;
+    cursor: pointer; margin-right: 12px; color: #fff;
+  }
+  .cc-sidebar-toggler i { font-size: 20px; }
+  @media (max-width: 768px) { .cc-sidebar-toggler { display: flex; } }
+</style>
+
+<nav class="cc-navbar">
+  <button class="cc-sidebar-toggler" id="sidebarToggler" aria-label="Ouvrir le menu">
+    <i class="ti ti-menu-2"></i>
+  </button>
+  <a class="cc-navbar-brand" href="{% url 'home' %}">
+    <div class="cc-brand-icon">
+      <i class="ti ti-heart-rate-monitor"></i>
+    </div>
+    <div>
+      <div class="cc-brand-name">ChroniCare</div>
+      <div class="cc-brand-tag">SUIVI MÉDICAL</div>
+    </div>
+  </a>
+  <div class="cc-nav-div"></div>
+  <div class="cc-breadcrumb d-none d-md-block">
+    <span>{{ page_title|default:"Tableau de bord" }}</span>
+  </div>
+
+  <div class="cc-nav-right">
+    {% if request.user.is_authenticated %}
+      <a href="{% url 'notification-list' %}" class="cc-icon-btn" aria-label="Notifications" id="notifBellBtn">
+        <i class="ti ti-bell"></i>
+        <span class="cc-notif-badge" id="notifBadge" style="display:none;"></span>
+      </a>
+
+      <div style="position:relative">
+        <button class="cc-profile-btn" id="profileBtn">
+          <div class="cc-avatar">
+            {{ request.user.first_name|first|upper }}{{ request.user.last_name|first|upper }}
+          </div>
+          <div>
+            <div class="cc-profile-name">
+              {{ request.user.get_full_name|default:request.user.username }}
+            </div>
+            {# get_role_display() retourne le libellé du choix (ex: "Pharmacien" au lieu de "pharmacist") #}
+            <div class="cc-profile-role">{{ request.user.get_role_display }}</div>
+          </div>
+          <i class="ti ti-chevron-down" style="font-size:14px;margin-left:2px"></i>
+        </button>
+
+        <div class="cc-dropdown" id="profileDropdown">
+          <div class="cc-dropdown-header">
+            <div class="name">{{ request.user.get_full_name|default:request.user.username }}</div>
+            <div class="role">{{ request.user.get_role_display }}</div>
+          </div>
+          <a href="{% url 'profile' %}" class="cc-dropdown-item">
+            <i class="ti ti-user"></i> Mon profil
+          </a>
+          <a href="{% url 'dashboard' %}" class="cc-dropdown-item">
+            <i class="ti ti-layout-dashboard"></i> Tableau de bord
+          </a>
+          <div class="cc-dropdown-divider"></div>
+          <a href="{% url 'user-logout' %}" class="cc-dropdown-item danger">
+            <i class="ti ti-logout"></i> Déconnexion
+          </a>
+        </div>
+      </div>
+
+    {% else %}
+      <a href="{% url 'user-login' %}" class="cc-icon-btn" aria-label="Connexion">
+        <i class="ti ti-login-2"></i>
+      </a>
+    {% endif %}
+  </div>
+</nav>
+
+<script>
+  /* ── Dropdown profil ── */
+  (function () {
+    const btn  = document.getElementById('profileBtn');
+    const drop = document.getElementById('profileDropdown');
+    if (!btn || !drop) return;
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      drop.classList.toggle('show');
+    });
+    document.addEventListener('click', function () {
+      drop.classList.remove('show');
+    });
+  })();
+
+  /* ── Badge notifications dynamique ── */
+  (function () {
+    const badge = document.getElementById('notifBadge');
+    if (!badge) return;
+
+    function rafraichirBadge() {
+      fetch('{% url "notification-count-api" %}', { credentials: 'same-origin' })
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+          if (!data) return;
+          if (data.count > 0) {
+            badge.textContent = data.count > 9 ? '9+' : data.count;
+            badge.style.display = 'block';
+          } else {
+            badge.style.display = 'none';
+          }
+        })
+        .catch(() => {});
+    }
+
+    rafraichirBadge();
+    setInterval(rafraichirBadge, 60000); /* rafraîchit toutes les 60 secondes */
+  })();
+</script>

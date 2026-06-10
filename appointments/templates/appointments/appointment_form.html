@@ -1,0 +1,51 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+
+<div class="container mt-4">
+
+    <div class="card shadow-sm border-0">
+
+        <div class="card-header bg-primary text-white">
+
+            <h4 class="mb-0">
+                Rendez-vous
+            </h4>
+
+        </div>
+
+        <div class="card-body">
+
+            <form method="POST">
+
+                {% csrf_token %}
+
+                {% if form.errors %}
+
+                <div class="alert alert-danger">
+
+                    {{ form.errors }}
+
+                </div>
+
+                {% endif %}
+
+                {{ form.as_p }}
+
+                <button type="submit" class="btn btn-success">
+                    Enregistrer
+                </button>
+
+                <a href="{% url 'appointment-list' %}" class="btn btn-secondary">
+                    Annuler
+                </a>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,175 @@
+{% extends "core/base.html" %}
+{% block title %}Alertes & Notifications — ChroniCare{% endblock %}
+{% block page_title %}Surveillance médicale{% endblock %}
+
+{% block extra_css %}
+<style>
+  .role-banner { background:linear-gradient(135deg,#791F1F,#C0392B); color:#fff; padding:22px 26px; border-radius:14px; margin-bottom:22px; display:flex; align-items:center; gap:18px; }
+  .role-banner .icon { width:56px; height:56px; border-radius:14px; background:rgba(255,255,255,.18); display:flex; align-items:center; justify-content:center; }
+  .role-banner .icon i { font-size:30px; color:#FECACA; }
+  .role-banner h1 { font-size:22px; font-weight:700; margin:0 0 4px; }
+  .role-banner p  { font-size:13px; margin:0; color:rgba(255,255,255,.85); }
+
+  .stat-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:14px; margin-bottom:22px; }
+  .stat-card { background:#fff; border:1px solid rgba(0,0,0,.07); border-radius:12px; padding:16px; }
+  .stat-card .top { display:flex; align-items:center; justify-content:space-between; }
+  .stat-card .ico { width:36px; height:36px; border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:19px; }
+  .stat-card .val { font-size:26px; font-weight:700; margin-top:8px; }
+  .stat-card .lbl { font-size:12px; color:#717D7E; }
+  .ico-red    { background:#FCEBEB; color:#791F1F; }
+  .ico-amber  { background:#FAEEDA; color:#633806; }
+  .ico-teal   { background:#E1F5EE; color:#085041; }
+  .ico-blue   { background:#E6F1FB; color:#0C447C; }
+  .val-red    { color:#791F1F; }
+  .val-amber  { color:#633806; }
+
+  .quick-actions { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; margin-bottom:22px; }
+  .qa { background:#fff; border:1px solid rgba(0,0,0,.07); border-radius:10px; padding:14px; text-align:center; text-decoration:none; color:#1C2833; transition:.15s; }
+  .qa:hover { border-color:#C0392B; transform:translateY(-1px); color:#791F1F; }
+  .qa i { font-size:22px; color:#C0392B; display:block; margin-bottom:6px; }
+
+  .card { background:#fff; border:1px solid rgba(0,0,0,.07); border-radius:12px; overflow:hidden; margin-bottom:16px; }
+  .card-header { padding:14px 18px; border-bottom:1px solid rgba(0,0,0,.06); display:flex; align-items:center; justify-content:space-between; }
+  .card-title { font-size:14px; font-weight:600; color:#1C2833; display:flex; align-items:center; gap:8px; margin:0; }
+  .card-link { font-size:12px; color:#C0392B; text-decoration:none; font-weight:500; }
+  .card-link:hover { text-decoration:underline; }
+  table.cc-table { width:100%; border-collapse:collapse; font-size:13px; }
+  table.cc-table th { padding:8px 14px; text-align:left; font-size:11px; font-weight:700; color:#A0AEC0; text-transform:uppercase; }
+  table.cc-table td { padding:10px 14px; border-bottom:1px solid rgba(0,0,0,.04); vertical-align:middle; }
+  table.cc-table tbody tr:hover { background:#FEF2F2; }
+
+  .badge { display:inline-flex; font-size:11px; font-weight:600; padding:3px 9px; border-radius:20px; }
+  .b-critical { background:#FCEBEB; color:#791F1F; }
+  .b-warning  { background:#FAEEDA; color:#633806; }
+  .b-info     { background:#E6F1FB; color:#0C447C; }
+  .b-ok       { background:#E1F5EE; color:#085041; }
+
+  .btn-cc { display:inline-flex; align-items:center; gap:5px; padding:6px 12px; border-radius:8px; font-size:12px; font-weight:600; text-decoration:none; border:none; cursor:pointer; transition:.15s; }
+  .btn-danger    { background:#791F1F; color:#fff; }
+  .btn-danger:hover    { background:#5C1414; color:#fff; }
+  .btn-secondary { background:#fff; border:1px solid rgba(0,0,0,.12); color:#4A5568; }
+  .btn-secondary:hover { background:#F4F9FC; }
+
+  .dot-live { width:8px; height:8px; border-radius:50%; background:#22C55E; display:inline-block; animation:pulse 2s infinite; margin-right:6px; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="role-banner">
+  <div class="icon"><i class="ti ti-alert-triangle"></i></div>
+  <div>
+    <h1>Surveillance médicale</h1>
+    <p>
+      <span class="dot-live"></span>
+      Bonjour {{ request.user.get_full_name|default:request.user.username }} —
+      {% if alertes_critiques > 0 %}
+        <strong>{{ alertes_critiques }} alerte(s) critique(s) active(s)</strong>
+      {% else %}
+        Aucune alerte critique active
+      {% endif %}
+    </p>
+  </div>
+</div>
+
+<div class="quick-actions">
+  <a href="{% url 'alert-list' %}" class="qa"><i class="ti ti-alert-circle"></i> Toutes les alertes</a>
+  <a href="{% url 'alert-list' %}?type=critical&resolved=false" class="qa"><i class="ti ti-urgent"></i> Alertes critiques</a>
+  <a href="{% url 'notification-list' %}" class="qa"><i class="ti ti-bell"></i> Mes notifications</a>
+  {% if request.user.role == 'admin' %}
+  <a href="{% url 'template-page' %}" class="qa"><i class="ti ti-template"></i> Templates</a>
+  {% endif %}
+</div>
+
+<div class="stat-grid">
+  <div class="stat-card">
+    <div class="top"><span class="lbl">Alertes critiques</span><div class="ico ico-red"><i class="ti ti-urgent"></i></div></div>
+    <div class="val val-red">{{ alertes_critiques }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="top"><span class="lbl">Non accusées</span><div class="ico ico-amber"><i class="ti ti-eye-off"></i></div></div>
+    <div class="val val-amber">{{ alertes_non_accusees }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="top"><span class="lbl">Toutes alertes actives</span><div class="ico ico-amber"><i class="ti ti-alert-circle"></i></div></div>
+    <div class="val">{{ alertes_total }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="top"><span class="lbl">Mes notifications non lues</span><div class="ico ico-blue"><i class="ti ti-bell"></i></div></div>
+    <div class="val">{{ notifs_recentes|length }}</div>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+
+  <!-- Alertes actives -->
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title"><i class="ti ti-alert-circle" style="color:#C0392B;"></i> Alertes actives récentes</h3>
+      <a href="{% url 'alert-list' %}?resolved=false" class="card-link">Voir toutes →</a>
+    </div>
+    <table class="cc-table">
+      <thead><tr><th>Patient</th><th>Sévérité</th><th>Source</th><th>Accusée</th><th></th></tr></thead>
+      <tbody>
+        {% for a in alertes_recentes %}
+        <tr>
+          <td><strong>{{ a.patient.nom }} {{ a.patient.prenom }}</strong></td>
+          <td>
+            {% if a.alert_type == 'critical' %}<span class="badge b-critical">Critique</span>
+            {% elif a.alert_type == 'warning' %}<span class="badge b-warning">Avertissement</span>
+            {% else %}<span class="badge b-info">Info</span>{% endif %}
+          </td>
+          <td>{{ a.get_source_display }}</td>
+          <td>
+            {% if a.acknowledged_by %}
+              <span class="badge b-ok">Oui</span>
+            {% else %}
+              <span class="badge b-critical">Non</span>
+            {% endif %}
+          </td>
+          <td>
+            <a href="{% url 'alert-detail' a.pk %}" class="btn-cc btn-secondary" style="padding:4px 9px;font-size:11px;">
+              <i class="ti ti-eye"></i> Voir
+            </a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" style="text-align:center;color:#A0AEC0;padding:20px;">Aucune alerte active</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Mes notifications non lues -->
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title"><i class="ti ti-bell" style="color:#0C447C;"></i> Mes notifications récentes</h3>
+      <a href="{% url 'notification-list' %}" class="card-link">Voir toutes →</a>
+    </div>
+    <table class="cc-table">
+      <thead><tr><th>Titre</th><th>Niveau</th><th>Date</th><th></th></tr></thead>
+      <tbody>
+        {% for n in notifs_recentes %}
+        <tr>
+          <td>{{ n.title }}</td>
+          <td>
+            {% if n.level == 'urgent' %}<span class="badge b-critical">Urgent</span>
+            {% elif n.level == 'warning' %}<span class="badge b-warning">Avertissement</span>
+            {% else %}<span class="badge b-info">Info</span>{% endif %}
+          </td>
+          <td style="font-size:11px;color:#A0AEC0;">{{ n.created_at|date:"d/m H:i" }}</td>
+          <td>
+            <a href="{% url 'notification-detail' n.pk %}" class="btn-cc btn-secondary" style="padding:4px 9px;font-size:11px;">
+              <i class="ti ti-eye"></i>
+            </a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4" style="text-align:center;color:#A0AEC0;padding:20px;">Aucune notification non lue</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+</div>
+{% endblock %}

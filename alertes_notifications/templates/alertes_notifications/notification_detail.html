@@ -1,0 +1,75 @@
+{% extends "core/base.html" %}
+{% block title %}Notification — ChroniCare{% endblock %}
+{% block page_title %}Notification{% endblock %}
+
+{% block extra_css %}
+<style>
+  .cc-card { background:#fff; border:1px solid rgba(0,0,0,.07); border-radius:12px; padding:22px; margin-bottom:16px; }
+  .notif-box { border-radius:10px; padding:16px; font-size:14px; color:#1C2833; margin-top:14px; }
+  .notif-box.urgent  { background:#FEF2F2; border-left:3px solid #C0392B; }
+  .notif-box.warning { background:#FFFBEB; border-left:3px solid #E67E22; }
+  .notif-box.info    { background:#EFF6FF; border-left:3px solid #2980B9; }
+  .cc-dl { display:grid; grid-template-columns:1fr 1fr; gap:12px 24px; margin-top:16px; }
+  @media(max-width:768px){ .cc-dl{ grid-template-columns:1fr; } }
+  .cc-dl-item label { display:block; font-size:11px; font-weight:700; color:#A0AEC0; text-transform:uppercase; margin-bottom:3px; }
+  .cc-dl-item span  { font-size:14px; color:#1C2833; }
+  .badge { display:inline-flex; font-size:11px; font-weight:600; padding:3px 9px; border-radius:20px; }
+  .b-urgent  { background:#FCEBEB; color:#791F1F; }
+  .b-warning { background:#FAEEDA; color:#633806; }
+  .b-info    { background:#E6F1FB; color:#0C447C; }
+  .b-lu      { background:#E1F5EE; color:#085041; }
+  .btn-cc { display:inline-flex; align-items:center; gap:6px; padding:9px 16px; border-radius:9px; font-size:13px; font-weight:600; text-decoration:none; border:none; cursor:pointer; transition:.15s; }
+  .btn-secondary { background:#fff; border:1px solid rgba(0,0,0,.12); color:#4A5568; }
+  .btn-secondary:hover { background:#F4F9FC; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="cc-card">
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+    <div>
+      <div style="font-size:17px;font-weight:700;color:#1C2833;margin-bottom:6px;">{{ notif.title }}</div>
+      <div>
+        {% if notif.level == 'urgent' %}<span class="badge b-urgent">Urgent</span>
+        {% elif notif.level == 'warning' %}<span class="badge b-warning">Avertissement</span>
+        {% else %}<span class="badge b-info">Information</span>{% endif %}
+        &nbsp;<span class="badge b-lu"><i class="ti ti-check"></i> Lu</span>
+      </div>
+    </div>
+    <div style="font-size:12px;color:#A0AEC0;">{{ notif.created_at|date:"d/m/Y à H:i" }}</div>
+  </div>
+
+  <div class="notif-box {{ notif.level }}">
+    {{ notif.message }}
+  </div>
+
+  <div class="cc-dl">
+    <div class="cc-dl-item">
+      <label>Destinataire</label>
+      <span>{{ notif.user.get_full_name|default:notif.user.username }}</span>
+    </div>
+    <div class="cc-dl-item">
+      <label>Niveau</label>
+      <span>{{ notif.get_level_display }}</span>
+    </div>
+    {% if notif.appointment %}
+    <div class="cc-dl-item">
+      <label>Rendez-vous lié</label>
+      <span>{{ notif.appointment }}</span>
+    </div>
+    {% endif %}
+    <div class="cc-dl-item">
+      <label>Date de réception</label>
+      <span>{{ notif.created_at|date:"d/m/Y à H:i" }}</span>
+    </div>
+  </div>
+</div>
+
+<div style="display:flex;gap:10px;flex-wrap:wrap;">
+  <a href="{% url 'notification-list' %}" class="btn-cc btn-secondary">
+    <i class="ti ti-arrow-left"></i> Retour à la liste
+  </a>
+</div>
+
+{% endblock %}

@@ -1,0 +1,337 @@
+{% extends 'core/base.html' %}
+{% block title %}{% if pm %}Modifier{% else %}Associer{% endif %} une maladie — ChroniCare{% endblock %}
+
+{% block extra_css %}
+<style>
+  .cc-form-wrap { max-width:760px; }
+
+  .cc-form-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; flex-wrap:wrap; gap:10px; }
+  .cc-form-header h1 { font-size:20px; font-weight:700; color:#1C2833; margin:0; display:flex; align-items:center; gap:8px; }
+  .cc-form-header h1 i { color:#0F6E56; }
+
+  /* Carte identité verrouillée (mode update) */
+  .cc-locked-card { background:#F4F9FC; border:1px solid rgba(0,0,0,.07); border-radius:12px; padding:16px 20px; margin-bottom:16px; display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+  .cc-locked-avatar { width:48px; height:48px; border-radius:50%; background:linear-gradient(135deg,#0F6E56,#1D9E75); color:#fff; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:700; flex-shrink:0; }
+  .cc-locked-avatar.female { background:linear-gradient(135deg,#6B46C1,#9F7AEA); }
+  .cc-locked-avatar.mal { border-radius:10px; background:linear-gradient(135deg,#0C447C,#3182CE); font-size:20px; }
+  .cc-locked-name { font-size:15px; font-weight:700; color:#1C2833; }
+  .cc-locked-sub { font-size:12px; color:#717D7E; margin-top:2px; }
+  .cc-locked-sep { width:1px; height:40px; background:rgba(0,0,0,.1); flex-shrink:0; }
+  .cc-locked-label { font-size:10px; font-weight:700; color:#A0AEC0; text-transform:uppercase; margin-bottom:3px; letter-spacing:.04em; }
+
+  .type-badge { display:inline-flex; padding:2px 8px; border-radius:20px; font-size:11px; font-weight:600; }
+  .type-infectieuse    { background:#FCEBEB; color:#791F1F; }
+  .type-metabolique    { background:#FAEEDA; color:#633806; }
+  .type-respiratoire   { background:#E6F1FB; color:#0C447C; }
+  .type-cardiovasculaire { background:#FDECEA; color:#7B1F1F; }
+  .type-neurologique   { background:#EDE9FE; color:#4C1D95; }
+  .type-auto-immune    { background:#FED7AA; color:#7C2D12; }
+  .type-renale         { background:#CFFAFE; color:#0E7490; }
+  .type-autre          { background:#F1F5F9; color:#475569; }
+
+  .cc-section { background:#fff; border:1px solid rgba(0,0,0,.07); border-radius:12px; overflow:hidden; margin-bottom:16px; }
+  .cc-section-header { padding:14px 20px; border-bottom:1px solid rgba(0,0,0,.06); display:flex; align-items:center; gap:8px; }
+  .cc-section-header h3 { font-size:14px; font-weight:600; color:#1C2833; margin:0; }
+  .cc-section-header i { font-size:17px; color:#0F6E56; }
+  .cc-section-body { padding:20px; }
+
+  .cc-form-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  @media(max-width:576px){ .cc-form-grid{ grid-template-columns:1fr; } }
+  .cc-field-full { grid-column:1/-1; }
+
+  .cc-field { display:flex; flex-direction:column; gap:5px; }
+  .cc-field label { font-size:12px; font-weight:600; color:#4A5568; }
+  .cc-field input, .cc-field select, .cc-field textarea {
+    width:100%; padding:9px 12px; border:1px solid #E2E8F0; border-radius:8px;
+    font-size:13px; background:#FAFBFC; color:#1C2833; outline:none;
+    transition:border-color .15s, box-shadow .15s; resize:vertical;
+  }
+  .cc-field input:focus, .cc-field select:focus, .cc-field textarea:focus {
+    border-color:#0F6E56; box-shadow:0 0 0 3px rgba(15,110,86,.1); background:#fff;
+  }
+  .cc-field-error { font-size:11px; color:#C53030; }
+  .cc-field-hint  { font-size:11px; color:#A0AEC0; }
+
+  .cc-form-errors { background:#FCEBEB; border:1px solid #F0D5D5; border-radius:9px; padding:12px 16px; margin-bottom:16px; font-size:13px; color:#791F1F; }
+  .cc-form-errors ul { margin:6px 0 0 16px; padding:0; }
+
+  /* Seuils d'alerte (formset) */
+  .seuil-row { display:grid; grid-template-columns:1fr 120px 120px 36px; gap:10px; align-items:end; padding:10px 0; border-bottom:1px solid rgba(0,0,0,.05); }
+  .seuil-row:last-of-type { border-bottom:none; }
+  .seuil-delete-btn { width:36px; height:36px; border-radius:8px; background:#FCEBEB; color:#791F1F; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; transition:.14s; }
+  .seuil-delete-btn:hover { background:#F0D5D5; }
+  .seuil-add-btn { display:inline-flex; align-items:center; gap:6px; padding:7px 14px; border-radius:8px; background:#E1F5EE; color:#085041; border:none; font-size:12px; font-weight:600; cursor:pointer; margin-top:10px; }
+  .seuil-add-btn:hover { background:#C5E5D5; }
+  .seuil-empty { font-size:13px; color:#A0AEC0; padding:12px 0; text-align:center; }
+  .seuil-deleted { display:none; }
+
+  .cc-form-footer { display:flex; gap:10px; flex-wrap:wrap; }
+  .btn-submit { background:#0F6E56; color:#fff; border:none; padding:10px 22px; border-radius:9px; font-size:13px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:7px; transition:.14s; }
+  .btn-submit:hover { background:#085041; }
+  .btn-back { background:#F4F9FC; color:#4A5568; border:1px solid rgba(0,0,0,.08); padding:10px 22px; border-radius:9px; font-size:13px; font-weight:600; text-decoration:none; display:inline-flex; align-items:center; gap:7px; }
+  .btn-back:hover { background:#E8EEF2; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="cc-form-wrap">
+
+  <div class="cc-form-header">
+    <h1>
+      <i class="ti ti-dna"></i>
+      {% if pm %}Modifier l'association maladie{% else %}Associer une maladie chronique{% endif %}
+    </h1>
+  </div>
+
+  {% if form.errors or seuil_formset.non_form_errors %}
+    <div class="cc-form-errors">
+      <strong>Erreurs à corriger :</strong>
+      <ul>
+        {% for field in form %}{% for e in field.errors %}<li><strong>{{ field.label }} :</strong> {{ e }}</li>{% endfor %}{% endfor %}
+        {% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}
+        {% if seuil_formset %}{% for e in seuil_formset.non_form_errors %}<li>{{ e }}</li>{% endfor %}{% endif %}
+      </ul>
+    </div>
+  {% endif %}
+
+  <form method="POST" novalidate>
+    {% csrf_token %}
+
+    {# ── MODE UPDATE : Patient + Maladie verrouillés ────────────── #}
+    {% if pm %}
+      <div class="cc-locked-card">
+        <div>
+          <div class="cc-locked-label">Patient</div>
+          <div class="cc-locked-avatar {% if pm.patient.sexe == 'F' %}female{% endif %}" style="margin-bottom:0;display:inline-flex;">
+            {{ pm.patient.prenom|first|upper }}{{ pm.patient.nom|first|upper }}
+          </div>
+        </div>
+        <div>
+          <div class="cc-locked-name">{{ pm.patient.nom }} {{ pm.patient.prenom }}</div>
+          <div class="cc-locked-sub">{{ pm.patient.get_sexe_display }}{% if pm.patient.date_naissance %} · {{ pm.patient.date_naissance|date:"d/m/Y" }}{% endif %}</div>
+        </div>
+        <div class="cc-locked-sep"></div>
+        <div>
+          <div class="cc-locked-label">Maladie</div>
+          <div class="cc-locked-name">{{ pm.maladie.nom }}</div>
+          <div class="cc-locked-sub">
+            <span class="type-badge type-{{ pm.maladie.type|slugify }}">{{ pm.maladie.get_type_display }}</span>
+          </div>
+        </div>
+      </div>
+
+    {# ── MODE CREATE : patient pré-rempli depuis fiche patient ───── #}
+    {% elif patient_obj %}
+      <div class="cc-locked-card">
+        <div>
+          <div class="cc-locked-label">Patient</div>
+          <div class="cc-locked-avatar {% if patient_obj.sexe == 'F' %}female{% endif %}" style="margin-bottom:0;display:inline-flex;">
+            {{ patient_obj.prenom|first|upper }}{{ patient_obj.nom|first|upper }}
+          </div>
+        </div>
+        <div>
+          <div class="cc-locked-name">{{ patient_obj.nom }} {{ patient_obj.prenom }}</div>
+          <div class="cc-locked-sub">{{ patient_obj.get_sexe_display }}{% if patient_obj.date_naissance %} · {{ patient_obj.date_naissance|date:"d/m/Y" }}{% endif %}</div>
+        </div>
+      </div>
+      {# Champ patient caché — valeur pré-remplie #}
+      <input type="hidden" name="patient" value="{{ patient_obj.id }}">
+    {% endif %}
+
+    {# ── SECTION ASSOCIATION (mode create sans patient_obj) ──────── #}
+    {% if not pm and not patient_obj %}
+    <div class="cc-section">
+      <div class="cc-section-header">
+        <i class="ti ti-link"></i><h3>Association</h3>
+      </div>
+      <div class="cc-section-body">
+        <div class="cc-form-grid">
+          <div class="cc-field">
+            <label for="{{ form.patient.id_for_label }}">Patient <span style="color:#C53030;">*</span></label>
+            {{ form.patient }}
+            {% if form.patient.errors %}<span class="cc-field-error">{{ form.patient.errors|join:" " }}</span>{% endif %}
+          </div>
+          <div class="cc-field">
+            <label for="{{ form.maladie.id_for_label }}">Maladie <span style="color:#C53030;">*</span></label>
+            {{ form.maladie }}
+            {% if form.maladie.errors %}<span class="cc-field-error">{{ form.maladie.errors|join:" " }}</span>{% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    {# ── SECTION MALADIE (mode create avec patient_obj) ──────────── #}
+    {% if not pm and patient_obj %}
+    <div class="cc-section">
+      <div class="cc-section-header">
+        <i class="ti ti-virus"></i><h3>Maladie à associer</h3>
+      </div>
+      <div class="cc-section-body">
+        <div class="cc-field">
+          <label for="{{ form.maladie.id_for_label }}">Maladie <span style="color:#C53030;">*</span></label>
+          {{ form.maladie }}
+          {% if form.maladie.errors %}<span class="cc-field-error">{{ form.maladie.errors|join:" " }}</span>{% endif %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    {# ── SECTION SUIVI ────────────────────────────────────────────── #}
+    <div class="cc-section">
+      <div class="cc-section-header">
+        <i class="ti ti-stethoscope"></i><h3>Informations de suivi</h3>
+      </div>
+      <div class="cc-section-body">
+        <div class="cc-form-grid">
+          <div class="cc-field">
+            <label for="{{ form.status.id_for_label }}">Statut <span style="color:#C53030;">*</span></label>
+            {{ form.status }}
+            {% if form.status.errors %}<span class="cc-field-error">{{ form.status.errors|join:" " }}</span>{% endif %}
+          </div>
+          <div class="cc-field">
+            <label for="{{ form.date_diagnostic.id_for_label }}">Date de diagnostic <span style="color:#C53030;">*</span></label>
+            {{ form.date_diagnostic }}
+            {% if form.date_diagnostic.errors %}<span class="cc-field-error">{{ form.date_diagnostic.errors|join:" " }}</span>{% endif %}
+          </div>
+          <div class="cc-field cc-field-full">
+            <label for="{{ form.observations.id_for_label }}">Observations cliniques</label>
+            {{ form.observations }}
+            <span class="cc-field-hint">Notes, traitements en cours, évolution observée…</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# ── SECTION SEUILS D'ALERTE (mode update uniquement) ─────────── #}
+    {% if pm and seuil_formset %}
+    <div class="cc-section">
+      <div class="cc-section-header">
+        <i class="ti ti-alert-triangle"></i><h3>Seuils d'alerte</h3>
+      </div>
+      <div class="cc-section-body">
+        <p style="font-size:12px;color:#717D7E;margin-bottom:14px;">
+          Définissez les valeurs minimales et maximales qui déclencheront une alerte pour ce patient.
+        </p>
+
+        {{ seuil_formset.management_form }}
+
+        <div id="seuil-container">
+          {% for seuil_form in seuil_formset %}
+            <div class="seuil-row {% if seuil_form.instance.pk and seuil_form.DELETE.value %}seuil-deleted{% endif %}" id="seuil-{{ forloop.counter0 }}">
+              {% for hidden in seuil_form.hidden_fields %}{{ hidden }}{% endfor %}
+
+              <div class="cc-field">
+                {% if forloop.first %}<label>Indicateur</label>{% endif %}
+                {{ seuil_form.indicateur }}
+                {% if seuil_form.indicateur.errors %}<span class="cc-field-error">{{ seuil_form.indicateur.errors|join:" " }}</span>{% endif %}
+              </div>
+              <div class="cc-field">
+                {% if forloop.first %}<label>Valeur min</label>{% endif %}
+                {{ seuil_form.min_valeur }}
+              </div>
+              <div class="cc-field">
+                {% if forloop.first %}<label>Valeur max</label>{% endif %}
+                {{ seuil_form.max_valeur }}
+              </div>
+              <div class="cc-field">
+                {% if forloop.first %}<label style="visibility:hidden;">Del</label>{% endif %}
+                {% if seuil_form.instance.pk %}
+                  <div style="display:none;">{{ seuil_form.DELETE }}</div>
+                  <button type="button" class="seuil-delete-btn" onclick="removeSeuil(this, '{{ seuil_form.DELETE.html_name }}')" title="Supprimer">
+                    <i class="ti ti-trash"></i>
+                  </button>
+                {% else %}
+                  <button type="button" class="seuil-delete-btn" onclick="this.closest('.seuil-row').remove()" title="Retirer">
+                    <i class="ti ti-x"></i>
+                  </button>
+                {% endif %}
+              </div>
+            </div>
+          {% empty %}
+            <p class="seuil-empty">Aucun seuil d'alerte défini.</p>
+          {% endfor %}
+        </div>
+
+        <button type="button" class="seuil-add-btn" onclick="addSeuil()">
+          <i class="ti ti-plus"></i> Ajouter un seuil
+        </button>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="cc-form-footer">
+      <button type="submit" class="btn-submit">
+        <i class="ti ti-device-floppy"></i>
+        {% if pm %}Enregistrer les modifications{% else %}Associer la maladie{% endif %}
+      </button>
+      {% if pm %}
+        <a href="{% url 'patient-detail' pm.patient.id %}" class="btn-back">
+          <i class="ti ti-arrow-left"></i> Retour à la fiche patient
+        </a>
+      {% else %}
+        <a href="{% url 'patient-maladie-list' %}" class="btn-back">
+          <i class="ti ti-arrow-left"></i> Annuler
+        </a>
+      {% endif %}
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% if pm and seuil_formset %}
+<script>
+(function () {
+  const totalForms = document.getElementById('id_seuilalerte_set-TOTAL_FORMS');
+
+  function addSeuil() {
+    const container = document.getElementById('seuil-container');
+    const idx = parseInt(totalForms.value);
+    const empty = document.querySelector('.seuil-empty');
+    if (empty) empty.remove();
+
+    const row = document.createElement('div');
+    row.className = 'seuil-row';
+    row.id = 'seuil-' + idx;
+    row.innerHTML = `
+      <div class="cc-field">
+        <input type="text" name="seuilalerte_set-${idx}-indicateur" class="form-control"
+          placeholder="ex : Glycémie, CD4, Tension systolique…">
+      </div>
+      <div class="cc-field">
+        <input type="number" name="seuilalerte_set-${idx}-min_valeur" step="0.01"
+          class="form-control" placeholder="Min">
+      </div>
+      <div class="cc-field">
+        <input type="number" name="seuilalerte_set-${idx}-max_valeur" step="0.01"
+          class="form-control" placeholder="Max">
+      </div>
+      <div class="cc-field">
+        <button type="button" class="seuil-delete-btn"
+          onclick="this.closest('.seuil-row').remove();updateTotal();" title="Retirer">
+          <i class="ti ti-x"></i>
+        </button>
+      </div>`;
+    container.appendChild(row);
+    totalForms.value = idx + 1;
+  }
+
+  function removeSeuil(btn, deleteName) {
+    const checkbox = document.querySelector('[name="' + deleteName + '"]');
+    if (checkbox) checkbox.checked = true;
+    btn.closest('.seuil-row').style.display = 'none';
+  }
+
+  function updateTotal() {
+    const rows = document.querySelectorAll('#seuil-container .seuil-row');
+    totalForms.value = rows.length;
+  }
+
+  window.addSeuil = addSeuil;
+  window.removeSeuil = removeSeuil;
+  window.updateTotal = updateTotal;
+})();
+</script>
+{% endif %}
+{% endblock %}

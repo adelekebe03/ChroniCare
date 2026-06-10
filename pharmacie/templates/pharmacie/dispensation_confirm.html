@@ -1,0 +1,109 @@
+{% extends "core/base.html" %}
+{% block title %}Confirmer la dispensation — ChroniCare{% endblock %}
+{% block page_title %}Confirmer la dispensation{% endblock %}
+
+{% block extra_css %}
+<style>
+  .cc-card { background:#fff; border:1px solid rgba(0,0,0,.07); border-radius:12px; padding:24px; margin-bottom:16px; }
+  .cc-dl { display:grid; grid-template-columns:1fr 1fr; gap:12px 24px; }
+  @media(max-width:768px){ .cc-dl{ grid-template-columns:1fr; } }
+  .cc-dl-item label { display:block; font-size:11px; font-weight:700; color:#A0AEC0; text-transform:uppercase; margin-bottom:3px; }
+  .cc-dl-item span  { font-size:14px; color:#1C2833; }
+  table.cc-table { width:100%; border-collapse:collapse; font-size:13px; }
+  table.cc-table th { padding:8px 12px; text-align:left; font-size:11px; font-weight:700; color:#A0AEC0; text-transform:uppercase; }
+  table.cc-table td { padding:10px 12px; border-bottom:1px solid rgba(0,0,0,.04); }
+  .btn-cc { display:inline-flex; align-items:center; gap:6px; padding:9px 18px; border-radius:9px; font-size:13px; font-weight:600; text-decoration:none; border:none; cursor:pointer; transition:.15s; }
+  .btn-primary   { background:#6B46C1; color:#fff; }
+  .btn-primary:hover   { background:#4A2E7B; color:#fff; }
+  .btn-secondary { background:#fff; border:1px solid rgba(0,0,0,.12); color:#4A5568; }
+  .btn-secondary:hover { background:#F4F9FC; }
+  .alert-rupture { background:#FCEBEB; border:1px solid #F5C6CB; border-radius:10px; padding:14px 18px; margin-bottom:16px; font-size:13px; color:#791F1F; }
+  .alert-ok { background:#E1F5EE; border:1px solid #A8D5C2; border-radius:10px; padding:14px 18px; margin-bottom:16px; font-size:13px; color:#085041; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="cc-card">
+  <h3 style="font-size:16px;font-weight:700;margin:0 0 16px;color:#1C2833;">
+    Récapitulatif de la dispensation
+  </h3>
+  <div class="cc-dl">
+    <div class="cc-dl-item">
+      <label>Patient</label>
+      <span>{{ prescription.patient.nom }} {{ prescription.patient.prenom }}</span>
+    </div>
+    <div class="cc-dl-item">
+      <label>Médecin prescripteur</label>
+      <span>{% if prescription.medecin %}Dr. {{ prescription.medecin.get_full_name|default:prescription.medecin.username }}{% else %}—{% endif %}</span>
+    </div>
+    <div class="cc-dl-item">
+      <label>Maladie</label>
+      <span>{{ prescription.maladie|default:"—" }}</span>
+    </div>
+    <div class="cc-dl-item">
+      <label>Période</label>
+      <span>Mois en cours</span>
+    </div>
+  </div>
+</div>
+
+<!-- Médicaments à dispenser -->
+<div class="cc-card">
+  <h3 style="font-size:14px;font-weight:700;margin:0 0 14px;color:#1C2833;">Médicaments à délivrer</h3>
+  <table class="cc-table">
+    <thead>
+      <tr><th>Médicament</th><th>Dosage</th><th>Fréquence</th><th>Quantité</th><th>Stock disponible</th></tr>
+    </thead>
+    <tbody>
+      {% for item in prescription.items.all %}
+      <tr>
+        <td>{{ item.medication.nom }}</td>
+        <td>{{ item.dosage }}</td>
+        <td>{{ item.get_frequence_display }}</td>
+        <td>{{ item.quantite }}</td>
+        <td>
+          {% if item.medication.est_en_rupture %}
+            <strong style="color:#791F1F;">{{ item.medication.stock_total }} — Insuffisant</strong>
+          {% else %}
+            {{ item.medication.stock_total }}
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Alerte stock -->
+{% if ruptures %}
+<div class="alert-rupture">
+  <strong><i class="ti ti-alert-triangle"></i> Dispensation impossible — stock insuffisant :</strong>
+  <ul style="margin:6px 0 0;padding-left:18px;">
+    {% for r in ruptures %}
+    <li>{{ r.medication }} — requis : {{ r.requis }}, disponible : {{ r.disponible }}</li>
+    {% endfor %}
+  </ul>
+</div>
+{% else %}
+<div class="alert-ok">
+  <i class="ti ti-check"></i> Stock suffisant pour tous les médicaments. Vous pouvez confirmer la dispensation.
+</div>
+{% endif %}
+
+<!-- Boutons -->
+<div style="display:flex;gap:10px;flex-wrap:wrap;">
+  {% if not ruptures %}
+  <form method="POST" action="{% url 'dispenser' prescription.id %}">
+    {% csrf_token %}
+    <button type="submit" class="btn-cc btn-primary">
+      <i class="ti ti-check"></i> Confirmer la dispensation
+    </button>
+  </form>
+  {% endif %}
+  <a href="{% url 'prescription-detail' prescription.id %}" class="btn-cc btn-secondary">
+    <i class="ti ti-arrow-left"></i> Annuler
+  </a>
+</div>
+
+{% endblock %}

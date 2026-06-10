@@ -1,0 +1,126 @@
+{% extends 'core/base.html' %}
+{% block title %}Supprimer l'association — ChroniCare{% endblock %}
+
+{% block extra_css %}
+<style>
+  .cc-confirm-wrap { max-width:520px; margin:0 auto; }
+  .cc-confirm-card { background:#fff; border:1px solid rgba(0,0,0,.07); border-radius:12px; padding:32px 28px; text-align:center; }
+  .cc-confirm-icon { width:72px; height:72px; border-radius:50%; background:#FCEBEB; display:flex; align-items:center; justify-content:center; margin:0 auto 20px; }
+  .cc-confirm-icon i { font-size:34px; color:#C53030; }
+  .cc-confirm-card h2 { font-size:18px; font-weight:700; color:#1C2833; margin:0 0 10px; }
+  .cc-confirm-card p  { font-size:14px; color:#717D7E; margin:0 0 22px; line-height:1.6; }
+
+  .cc-assoc-info { display:flex; gap:16px; background:#F4F9FC; border:1px solid rgba(0,0,0,.06); border-radius:10px; padding:16px; margin-bottom:20px; text-align:left; flex-wrap:wrap; }
+  .cc-assoc-col { flex:1; min-width:180px; }
+  .cc-assoc-label { font-size:10px; font-weight:700; color:#A0AEC0; text-transform:uppercase; letter-spacing:.04em; margin-bottom:6px; }
+  .cc-assoc-avatar { width:38px; height:38px; border-radius:50%; background:linear-gradient(135deg,#0F6E56,#1D9E75); color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; flex-shrink:0; margin-bottom:6px; }
+  .cc-assoc-avatar.female { background:linear-gradient(135deg,#6B46C1,#9F7AEA); }
+  .cc-assoc-avatar.mal { border-radius:8px; background:linear-gradient(135deg,#0C447C,#3182CE); font-size:16px; }
+  .cc-assoc-name { font-size:14px; font-weight:700; color:#1C2833; }
+  .cc-assoc-sub  { font-size:12px; color:#717D7E; }
+  .cc-assoc-sep { width:1px; background:rgba(0,0,0,.08); flex-shrink:0; }
+
+  .type-badge { display:inline-flex; padding:2px 8px; border-radius:20px; font-size:11px; font-weight:600; }
+  .type-infectieuse    { background:#FCEBEB; color:#791F1F; }
+  .type-metabolique    { background:#FAEEDA; color:#633806; }
+  .type-respiratoire   { background:#E6F1FB; color:#0C447C; }
+  .type-cardiovasculaire { background:#FDECEA; color:#7B1F1F; }
+  .type-neurologique   { background:#EDE9FE; color:#4C1D95; }
+  .type-auto-immune    { background:#FED7AA; color:#7C2D12; }
+  .type-renale         { background:#CFFAFE; color:#0E7490; }
+  .type-autre          { background:#F1F5F9; color:#475569; }
+
+  .status-badge { display:inline-flex; font-size:11px; font-weight:600; padding:2px 8px; border-radius:20px; }
+  .sb-active { background:#FCEBEB; color:#791F1F; }
+  .sb-stable { background:#E6F1FB; color:#0C447C; }
+  .sb-guerie { background:#E1F5EE; color:#085041; }
+
+  .cc-warn-box { background:#FAEEDA; border:1px solid #F0E0C0; border-radius:9px; padding:12px 16px; margin-bottom:22px; font-size:13px; color:#633806; text-align:left; display:flex; gap:10px; align-items:flex-start; }
+  .cc-warn-box i { font-size:17px; flex-shrink:0; margin-top:1px; }
+
+  .cc-confirm-actions { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+  .btn-danger  { background:#C53030; color:#fff; border:none; padding:10px 22px; border-radius:9px; font-size:13px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:7px; transition:.14s; }
+  .btn-danger:hover { background:#9B2222; }
+  .btn-cancel  { background:#F4F9FC; color:#4A5568; border:1px solid rgba(0,0,0,.08); padding:10px 22px; border-radius:9px; font-size:13px; font-weight:600; text-decoration:none; display:inline-flex; align-items:center; gap:7px; }
+  .btn-cancel:hover { background:#E8EEF2; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="cc-confirm-wrap">
+  <div class="cc-confirm-card">
+
+    <div class="cc-confirm-icon"><i class="ti ti-link-off"></i></div>
+    <h2>Supprimer l'association</h2>
+    <p>Cette action est irréversible. L'association entre ce patient et cette maladie sera supprimée, ainsi que tous les seuils d'alerte liés.</p>
+
+    <div class="cc-assoc-info">
+      <!-- Patient -->
+      <div class="cc-assoc-col">
+        <div class="cc-assoc-label">Patient</div>
+        <div class="cc-assoc-avatar {% if pm.patient.sexe == 'F' %}female{% endif %}">
+          {{ pm.patient.prenom|first|upper }}{{ pm.patient.nom|first|upper }}
+        </div>
+        <div class="cc-assoc-name">{{ pm.patient.nom }} {{ pm.patient.prenom }}</div>
+        <div class="cc-assoc-sub">{{ pm.patient.get_sexe_display }}</div>
+      </div>
+
+      <div class="cc-assoc-sep"></div>
+
+      <!-- Maladie -->
+      <div class="cc-assoc-col">
+        <div class="cc-assoc-label">Maladie</div>
+        <div class="cc-assoc-avatar mal"><i class="ti ti-virus"></i></div>
+        <div class="cc-assoc-name">{{ pm.maladie.nom }}</div>
+        <div class="cc-assoc-sub">
+          <span class="type-badge type-{{ pm.maladie.type|slugify }}">{{ pm.maladie.get_type_display }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Infos suivi -->
+    <div style="background:#F4F9FC;border-radius:9px;padding:12px 16px;margin-bottom:20px;text-align:left;font-size:13px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+        <span style="color:#717D7E;">Statut</span>
+        <span class="status-badge {% if pm.status == 'active' %}sb-active{% elif pm.status == 'stable' %}sb-stable{% else %}sb-guerie{% endif %}">
+          {{ pm.get_status_display }}
+        </span>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+        <span style="color:#717D7E;">Date de diagnostic</span>
+        <strong>{{ pm.date_diagnostic|date:"d/m/Y" }}</strong>
+      </div>
+      {% with sc=pm.seuils.count %}
+      {% if sc > 0 %}
+      <div style="display:flex;justify-content:space-between;">
+        <span style="color:#717D7E;">Seuils d'alerte</span>
+        <strong style="color:#C53030;">{{ sc }} seuil{{ sc|pluralize }} supprimé{{ sc|pluralize }}</strong>
+      </div>
+      {% endif %}
+      {% endwith %}
+    </div>
+
+    {% with sc=pm.seuils.count %}
+    {% if sc > 0 %}
+    <div class="cc-warn-box">
+      <i class="ti ti-alert-triangle"></i>
+      <div>{{ sc }} seuil{{ sc|pluralize }} d'alerte sera{{ sc|pluralize:",nt" }} définitivement supprimé{{ sc|pluralize }}.</div>
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <form method="POST">
+      {% csrf_token %}
+      <div class="cc-confirm-actions">
+        <button type="submit" class="btn-danger">
+          <i class="ti ti-trash"></i> Oui, supprimer définitivement
+        </button>
+        <a href="{% url 'patient-detail' pm.patient.id %}" class="btn-cancel">
+          <i class="ti ti-x"></i> Annuler
+        </a>
+      </div>
+    </form>
+
+  </div>
+</div>
+{% endblock %}

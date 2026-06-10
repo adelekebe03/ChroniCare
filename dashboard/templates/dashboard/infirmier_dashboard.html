@@ -1,0 +1,101 @@
+{% extends 'core/base.html' %}
+{% block title %}Espace Infirmier — ChroniCare{% endblock %}
+{% block page_title %}Tableau de bord Infirmier{% endblock %}
+
+{% block extra_css %}
+<style>
+  .role-banner { background:linear-gradient(135deg,#0C447C,#1D6BAF); color:#fff; padding:22px 26px; border-radius:14px; margin-bottom:22px; display:flex; align-items:center; gap:18px; }
+  .role-banner .icon { width:56px; height:56px; border-radius:14px; background:rgba(255,255,255,.18); display:flex; align-items:center; justify-content:center; }
+  .role-banner .icon i { font-size:30px; color:#BFE0F7; }
+  .role-banner h1 { font-size:22px; font-weight:700; margin:0 0 4px; }
+  .role-banner p  { font-size:13px; margin:0; color:rgba(255,255,255,.85); }
+
+  .stat-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:14px; margin-bottom:22px; }
+  .stat-card { background:#fff; border:1px solid rgba(0,0,0,.07); border-radius:12px; padding:16px; }
+  .stat-card .top { display:flex; align-items:center; justify-content:space-between; }
+  .stat-card .ico { width:36px; height:36px; border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:19px; background:#E6F1FB; color:#0C447C; }
+  .stat-card .val { font-size:26px; font-weight:700; margin-top:8px; color:#1C2833; }
+  .stat-card .lbl { font-size:12px; color:#717D7E; }
+
+  .quick-actions { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; margin-bottom:22px; }
+  .qa { background:#fff; border:1px solid rgba(0,0,0,.07); border-radius:10px; padding:14px; text-align:center; text-decoration:none; color:#1C2833; transition:.15s; }
+  .qa:hover { border-color:#1D6BAF; transform:translateY(-1px); color:#0C447C; }
+  .qa i { font-size:22px; color:#0C447C; display:block; margin-bottom:6px; }
+
+  .alert-item { display:flex; gap:12px; padding:11px 14px; border-radius:9px; margin-bottom:8px; background:#FCEBEB; border:1px solid #F0D5D5; color:#791F1F; align-items:flex-start; }
+  .alert-item:last-child { margin-bottom:0; }
+  .alert-item i { font-size:18px; margin-top:1px; }
+  .alert-item-body strong { display:block; font-size:13px; font-weight:600; }
+  .alert-item-body span   { font-size:11px; opacity:.85; }
+
+  .cc-acc { border:1px solid rgba(0,0,0,.07); border-radius:12px; overflow:hidden; margin-bottom:12px; }
+  .cc-acc-btn { width:100%; display:flex; align-items:center; gap:10px; padding:14px 18px; background:#fff; border:none; cursor:pointer; font-size:14px; font-weight:600; color:#1C2833; text-align:left; transition:background .15s; }
+  .cc-acc-btn:hover, .cc-acc-btn.open { background:#F9FAFB; }
+  .cc-acc-btn .acc-left { display:flex; align-items:center; gap:8px; flex:1; }
+  .cc-acc-btn .acc-left i { font-size:17px; color:#791F1F; }
+  .cc-acc-btn .acc-count { font-size:11px; font-weight:700; padding:2px 8px; border-radius:20px; background:#FCEBEB; color:#791F1F; }
+  .cc-acc-btn .acc-chevron { font-size:16px; color:#A0AEC0; transition:transform .2s; flex-shrink:0; }
+  .cc-acc-btn .acc-link { font-size:12px; font-weight:500; text-decoration:none; color:#0C447C; flex-shrink:0; }
+  .cc-acc-btn.open .acc-chevron { transform:rotate(180deg); }
+  .cc-acc-body { display:none; border-top:1px solid rgba(0,0,0,.06); }
+  .cc-acc-body.open { display:block; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="role-banner">
+  <div class="icon"><i class="ti ti-nurse"></i></div>
+  <div>
+    <h1>Bonjour {{ request.user.get_full_name|default:request.user.username }}</h1>
+    <p>Espace Infirmier — Suivez les patients, les rendez-vous et les alertes prioritaires.</p>
+  </div>
+</div>
+
+<div class="quick-actions">
+  <a href="{% url 'patient-list' %}" class="qa"><i class="ti ti-users"></i> Patients</a>
+  <a href="{% url 'appointment-list' %}" class="qa"><i class="ti ti-calendar"></i> Rendez-vous</a>
+  <a href="{% url 'monitoring-dashboard' %}" class="qa"><i class="ti ti-activity"></i> Surveillance</a>
+  <a href="{% url 'alert-list' %}" class="qa"><i class="ti ti-alert-triangle"></i> Alertes</a>
+</div>
+
+<div class="stat-grid">
+  <div class="stat-card"><div class="top"><span class="lbl">Patients suivis</span><div class="ico"><i class="ti ti-users"></i></div></div><div class="val">{{ patients_count }}</div></div>
+  <div class="stat-card"><div class="top"><span class="lbl">Rendez-vous</span><div class="ico"><i class="ti ti-calendar"></i></div></div><div class="val">{{ appointments_count }}</div></div>
+  <div class="stat-card"><div class="top"><span class="lbl">Alertes</span><div class="ico" style="background:#FCEBEB;color:#791F1F;"><i class="ti ti-alert-triangle"></i></div></div><div class="val">{{ alerts_count }}</div></div>
+</div>
+
+{# ── Alertes récentes (accordéon) ─────────────────────────────── #}
+<div class="cc-acc">
+  <button class="cc-acc-btn" onclick="accToggle(this)">
+    <span class="acc-left"><i class="ti ti-alert-triangle"></i> Alertes récentes <span class="acc-count">{{ recent_alerts|length }}</span></span>
+    <a href="{% url 'alert-list' %}" class="acc-link" onclick="event.stopPropagation()">Toutes les alertes →</a>
+    <i class="ti ti-chevron-down acc-chevron"></i>
+  </button>
+  <div class="cc-acc-body">
+    <div style="padding:14px 18px;">
+      {% for al in recent_alerts %}
+        <div class="alert-item">
+          <i class="ti ti-alert-triangle"></i>
+          <div class="alert-item-body">
+            <strong>{{ al }}</strong>
+            <span>Alerte #{{ al.pk }}</span>
+          </div>
+        </div>
+      {% empty %}
+        <p style="text-align:center;color:#A0AEC0;margin:14px 0;">Aucune alerte active</p>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function accToggle(btn) {
+  const body = btn.nextElementSibling;
+  const isOpen = btn.classList.contains('open');
+  btn.classList.toggle('open', !isOpen);
+  body.classList.toggle('open', !isOpen);
+}
+</script>
+{% endblock %}

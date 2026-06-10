@@ -1,0 +1,284 @@
+{% extends 'core/base.html' %}
+{% block title %}Administration — ChroniCare{% endblock %}
+{% block page_title %}Tableau de bord Administrateur{% endblock %}
+
+{% block extra_css %}
+<style>
+  .role-banner { background:linear-gradient(135deg,#085041,#0F6E56); color:#fff; padding:22px 26px; border-radius:14px; margin-bottom:22px; display:flex; align-items:center; gap:18px; }
+  .role-banner .icon { width:56px; height:56px; border-radius:14px; background:rgba(255,255,255,.18); display:flex; align-items:center; justify-content:center; }
+  .role-banner .icon i { font-size:30px; color:#9FE1CB; }
+  .role-banner h1 { font-size:22px; font-weight:700; margin:0 0 4px; }
+  .role-banner p  { font-size:13px; margin:0; color:rgba(255,255,255,.85); }
+
+  .quick-actions { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; margin-bottom:22px; }
+  .qa { background:#fff; border:1px solid rgba(0,0,0,.07); border-radius:10px; padding:14px; text-align:center; text-decoration:none; color:#1C2833; transition:.15s; display:flex; flex-direction:column; align-items:center; gap:8px; }
+  .qa:hover { border-color:#1D9E75; transform:translateY(-1px); color:#0F6E56; }
+  .qa i { font-size:22px; color:#0F6E56; display:block; }
+  .qa span { font-size:12px; font-weight:500; }
+
+  .kpi-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:14px; margin-bottom:22px; }
+  .kpi-card { background:#fff; border:1px solid rgba(0,0,0,.07); border-radius:12px; padding:16px; }
+  .kpi-card .top { display:flex; align-items:center; justify-content:space-between; }
+  .kpi-card .ico { width:38px; height:38px; border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:20px; }
+  .kpi-card .val { font-size:28px; font-weight:700; margin-top:8px; color:#1C2833; line-height:1; }
+  .kpi-card .lbl { font-size:11px; color:#717D7E; margin-top:4px; }
+  .ico-teal { background:#E1F5EE; color:#085041; }
+  .ico-blue { background:#E6F1FB; color:#0C447C; }
+  .ico-amber{ background:#FAEEDA; color:#633806; }
+  .ico-red  { background:#FCEBEB; color:#791F1F; }
+  .ico-purp { background:#EDE7F6; color:#4A2E7B; }
+  .ico-cyan { background:#E0F7FA; color:#075568; }
+
+  .charts-row { display:grid; grid-template-columns:1fr; gap:16px; margin-bottom:22px; }
+  .charts-row-2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:22px; }
+  @media(max-width:768px){ .charts-row-2{ grid-template-columns:1fr; } }
+
+  .chart-card { background:#fff; border:1px solid rgba(0,0,0,.07); border-radius:12px; padding:18px; }
+  .chart-card h3 { font-size:13px; font-weight:700; color:#1C2833; margin:0 0 16px; display:flex; align-items:center; gap:8px; }
+  .chart-card h3 i { color:#0F6E56; }
+  .chart-wrap { position:relative; height:240px; }
+  .chart-wrap-sm { position:relative; height:200px; }
+
+  .card { background:#fff; border:1px solid rgba(0,0,0,.07); border-radius:12px; overflow:hidden; }
+  .card-header { padding:14px 18px; border-bottom:1px solid rgba(0,0,0,.06); display:flex; align-items:center; justify-content:space-between; }
+  .card-title { font-size:14px; font-weight:600; color:#1C2833; display:flex; align-items:center; gap:8px; margin:0; }
+  .card-title i { font-size:17px; color:#0F6E56; }
+  .card-body { padding:16px 18px; }
+
+  table.cc-table { width:100%; border-collapse:collapse; font-size:13px; }
+  table.cc-table th { padding:8px 12px; text-align:left; font-size:11px; font-weight:700; color:#A0AEC0; text-transform:uppercase; }
+  table.cc-table td { padding:10px 12px; border-bottom:1px solid rgba(0,0,0,.04); }
+  table.cc-table tbody tr:hover { background:#F4F9FC; }
+  .role-badge { display:inline-flex; font-size:11px; font-weight:600; padding:3px 9px; border-radius:20px; }
+  .rb-admin     { background:#FCEBEB; color:#791F1F; }
+  .rb-doctor    { background:#E1F5EE; color:#085041; }
+  .rb-nurse     { background:#E6F1FB; color:#0C447C; }
+  .rb-patient   { background:#FAEEDA; color:#633806; }
+  .rb-pharmacist{ background:#EDE7F6; color:#4A2E7B; }
+  .rb-lab       { background:#E0F7FA; color:#075568; }
+
+  .cc-acc { border:1px solid rgba(0,0,0,.07); border-radius:12px; overflow:hidden; margin-bottom:12px; }
+  .cc-acc-btn { width:100%; display:flex; align-items:center; gap:10px; padding:14px 18px; background:#fff; border:none; cursor:pointer; font-size:14px; font-weight:600; color:#1C2833; text-align:left; transition:background .15s; }
+  .cc-acc-btn:hover, .cc-acc-btn.open { background:#F9FAFB; }
+  .cc-acc-btn .acc-left { display:flex; align-items:center; gap:8px; flex:1; }
+  .cc-acc-btn .acc-left i { font-size:17px; color:#0F6E56; }
+  .cc-acc-btn .acc-count { font-size:11px; font-weight:700; padding:2px 8px; border-radius:20px; background:#F3F4F6; color:#4A5568; }
+  .cc-acc-btn .acc-chevron { font-size:16px; color:#A0AEC0; transition:transform .2s; flex-shrink:0; }
+  .cc-acc-btn .acc-link { font-size:12px; font-weight:500; text-decoration:none; color:#0F6E56; flex-shrink:0; }
+  .cc-acc-btn.open .acc-chevron { transform:rotate(180deg); }
+  .cc-acc-body { display:none; border-top:1px solid rgba(0,0,0,.06); }
+  .cc-acc-body.open { display:block; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="role-banner">
+  <div class="icon"><i class="ti ti-shield-lock"></i></div>
+  <div>
+    <h1>Espace Administrateur</h1>
+    <p>Bienvenue {{ request.user.get_full_name|default:request.user.username }} — Vue d'ensemble de la plateforme ChroniCare.</p>
+  </div>
+</div>
+
+{# ── Actions rapides ──────────────────────────────────────────── #}
+<div class="quick-actions">
+  <a href="{% url 'user-list' %}" class="qa"><i class="ti ti-users-group"></i><span>Utilisateurs</span></a>
+  <a href="{% url 'user-register' %}" class="qa"><i class="ti ti-user-plus"></i><span>Nouvel utilisateur</span></a>
+  <a href="{% url 'patient-list' %}" class="qa"><i class="ti ti-users"></i><span>Patients</span></a>
+  <a href="{% url 'maladie-list' %}" class="qa"><i class="ti ti-virus"></i><span>Maladies</span></a>
+  <a href="{% url 'monitoring-dashboard' %}" class="qa"><i class="ti ti-activity"></i><span>Surveillance</span></a>
+  <a href="{% url 'alert-list' %}" class="qa"><i class="ti ti-alert-triangle"></i><span>Alertes</span></a>
+  <a href="{% url 'dashboard-export-pdf' %}" class="qa"><i class="ti ti-file-export"></i><span>Export PDF</span></a>
+</div>
+
+{# ── KPIs ─────────────────────────────────────────────────────── #}
+<div class="kpi-grid">
+  <div class="kpi-card"><div class="top"><span class="lbl">Patients</span><div class="ico ico-amber"><i class="ti ti-user-heart"></i></div></div><div class="val">{{ patients_count }}</div><div class="lbl">dossiers enregistrés</div></div>
+  <div class="kpi-card"><div class="top"><span class="lbl">Consultations</span><div class="ico ico-teal"><i class="ti ti-clipboard-text"></i></div></div><div class="val">{{ consultations_count }}</div><div class="lbl">suivis médicaux</div></div>
+  <div class="kpi-card"><div class="top"><span class="lbl">Rendez-vous</span><div class="ico ico-blue"><i class="ti ti-calendar"></i></div></div><div class="val">{{ appointments_count }}</div><div class="lbl">programmés</div></div>
+  <div class="kpi-card"><div class="top"><span class="lbl">Alertes actives</span><div class="ico ico-red"><i class="ti ti-alert-triangle"></i></div></div><div class="val">{{ alerts_count }}</div><div class="lbl">non résolues</div></div>
+  <div class="kpi-card"><div class="top"><span class="lbl">Médecins</span><div class="ico ico-teal"><i class="ti ti-stethoscope"></i></div></div><div class="val">{{ doctors }}</div><div class="lbl">actifs</div></div>
+  <div class="kpi-card"><div class="top"><span class="lbl">Infirmiers</span><div class="ico ico-blue"><i class="ti ti-nurse"></i></div></div><div class="val">{{ nurses }}</div><div class="lbl">actifs</div></div>
+  <div class="kpi-card"><div class="top"><span class="lbl">Pharmaciens</span><div class="ico ico-purp"><i class="ti ti-pill"></i></div></div><div class="val">{{ pharmacists }}</div><div class="lbl">actifs</div></div>
+  <div class="kpi-card"><div class="top"><span class="lbl">Total utilisateurs</span><div class="ico ico-teal"><i class="ti ti-users-group"></i></div></div><div class="val">{{ total_users }}</div><div class="lbl">comptes</div></div>
+  <div class="kpi-card"><div class="top"><span class="lbl">Maladies</span><div class="ico ico-purp"><i class="ti ti-virus"></i></div></div><div class="val">{{ maladies_count }}</div><div class="lbl">référencées</div></div>
+</div>
+
+{# ── Graphique tendance (pleine largeur) ─────────────────────── #}
+<div class="charts-row">
+  <div class="chart-card">
+    <h3><i class="ti ti-trending-up"></i> Évolution mensuelle — 6 derniers mois</h3>
+    <div class="chart-wrap">
+      <canvas id="trendChart"></canvas>
+    </div>
+  </div>
+</div>
+
+{# ── Graphiques répartition (2 colonnes) ─────────────────────── #}
+<div class="charts-row-2">
+  <div class="chart-card">
+    <h3><i class="ti ti-chart-donut"></i> Répartition du personnel</h3>
+    <div class="chart-wrap-sm">
+      <canvas id="roleChart"></canvas>
+    </div>
+  </div>
+  <div class="chart-card">
+    <h3><i class="ti ti-chart-bar"></i> État des alertes</h3>
+    <div class="chart-wrap-sm">
+      <canvas id="alertChart"></canvas>
+    </div>
+  </div>
+</div>
+
+{# ── Utilisateurs récents (accordéon) ─────────────────────────── #}
+<div class="cc-acc">
+  <button class="cc-acc-btn" onclick="accToggle(this)">
+    <span class="acc-left"><i class="ti ti-user-plus"></i> Utilisateurs récents <span class="acc-count">{{ recent_users|length }}</span></span>
+    <a href="{% url 'user-list' %}" class="acc-link" onclick="event.stopPropagation()">Voir tout →</a>
+    <i class="ti ti-chevron-down acc-chevron"></i>
+  </button>
+  <div class="cc-acc-body">
+    <table class="cc-table">
+      <thead><tr><th>Nom</th><th>Identifiant</th><th>E-mail</th><th>Rôle</th><th>Inscrit le</th></tr></thead>
+      <tbody>
+        {% for u in recent_users %}
+          <tr>
+            <td>{{ u.get_full_name|default:"—" }}</td>
+            <td>{{ u.username }}</td>
+            <td>{{ u.email|default:"—" }}</td>
+            <td><span class="role-badge rb-{{ u.role }}">{{ u.get_role_display }}</span></td>
+            <td>{{ u.date_joined|date:"d/m/Y" }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="5" style="text-align:center;color:#A0AEC0;padding:20px;">Aucun utilisateur</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+const TEAL  = '#0F6E56';
+const BLUE  = '#0C447C';
+const RED   = '#C0392B';
+const AMBER = '#E67E22';
+const PURP  = '#7B3FBE';
+const CYAN  = '#0891B2';
+
+Chart.defaults.font.family = "'Inter', 'Segoe UI', sans-serif";
+Chart.defaults.font.size   = 12;
+
+// ── Tendance consultations + nouveaux patients ────────────────
+new Chart(document.getElementById('trendChart'), {
+  type: 'line',
+  data: {
+    labels: {{ chart_labels|safe }},
+    datasets: [
+      {
+        label: 'Consultations',
+        data: {{ chart_consults|safe }},
+        borderColor: TEAL,
+        backgroundColor: 'rgba(15,110,86,.1)',
+        borderWidth: 2.5,
+        pointBackgroundColor: TEAL,
+        pointRadius: 4,
+        tension: 0.3,
+        fill: true,
+      },
+      {
+        label: 'Nouveaux patients',
+        data: {{ chart_patients|safe }},
+        borderColor: BLUE,
+        backgroundColor: 'rgba(12,68,124,.07)',
+        borderWidth: 2,
+        pointBackgroundColor: BLUE,
+        pointRadius: 4,
+        tension: 0.3,
+        fill: true,
+      },
+    ],
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: { position: 'bottom', labels: { usePointStyle: true, padding: 16 } },
+      tooltip: { padding: 10 },
+    },
+    scales: {
+      x: { grid: { color: 'rgba(0,0,0,.04)' } },
+      y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,.04)' },
+           ticks: { stepSize: 1 } },
+    },
+  },
+});
+
+// ── Répartition rôles (doughnut) ──────────────────────────────
+new Chart(document.getElementById('roleChart'), {
+  type: 'doughnut',
+  data: {
+    labels: {{ chart_role_labels|safe }},
+    datasets: [{
+      data: {{ chart_role_data|safe }},
+      backgroundColor: [TEAL, BLUE, AMBER, PURP, CYAN, RED],
+      borderWidth: 2,
+      borderColor: '#fff',
+    }],
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    cutout: '60%',
+    plugins: {
+      legend: { position: 'bottom', labels: { usePointStyle: true, padding: 12, font: { size: 11 } } },
+    },
+  },
+});
+
+function accToggle(btn) {
+  const body = btn.nextElementSibling;
+  const isOpen = btn.classList.contains('open');
+  btn.classList.toggle('open', !isOpen);
+  body.classList.toggle('open', !isOpen);
+}
+
+// ── État des alertes (bar) ─────────────────────────────────────
+new Chart(document.getElementById('alertChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Critiques', 'Avertissements', 'Information', 'Résolues'],
+    datasets: [{
+      label: 'Alertes',
+      data: {{ chart_alert_data|safe }},
+      backgroundColor: [
+        'rgba(192,57,43,.8)',
+        'rgba(230,126,34,.8)',
+        'rgba(12,68,124,.7)',
+        'rgba(15,110,86,.7)',
+      ],
+      borderRadius: 6,
+      borderSkipped: false,
+    }],
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: { padding: 10 },
+    },
+    scales: {
+      x: { grid: { display: false } },
+      y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,.04)' },
+           ticks: { stepSize: 1 } },
+    },
+  },
+});
+</script>
+{% endblock %}

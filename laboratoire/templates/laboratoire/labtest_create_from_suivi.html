@@ -1,0 +1,212 @@
+{% extends 'core/base.html' %}
+{% block title %}Prescrire une analyse — ChroniCare{% endblock %}
+
+{% block extra_css %}
+<style>
+  .cc-form-wrap { max-width:700px; }
+  .cc-form-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; flex-wrap:wrap; gap:10px; }
+  .cc-form-header h1 { font-size:20px; font-weight:700; color:#1C2833; margin:0; display:flex; align-items:center; gap:8px; }
+  .cc-form-header h1 i { color:#0F6E56; }
+
+  .cc-context-card { background:#F4F9FC; border:1px solid rgba(0,0,0,.07); border-radius:12px; padding:16px 20px; margin-bottom:16px; display:flex; gap:16px; align-items:center; flex-wrap:wrap; }
+  .cc-ctx-col { flex:1; min-width:160px; }
+  .cc-ctx-label { font-size:10px; font-weight:700; color:#A0AEC0; text-transform:uppercase; margin-bottom:4px; }
+  .cc-ctx-val   { font-size:14px; font-weight:700; color:#1C2833; }
+  .cc-ctx-sub   { font-size:12px; color:#717D7E; }
+  .cc-ctx-sep   { width:1px; background:rgba(0,0,0,.08); align-self:stretch; flex-shrink:0; }
+  .cc-lock-icon { color:#A0AEC0; font-size:20px; margin-left:auto; }
+
+  .cc-section { background:#fff; border:1px solid rgba(0,0,0,.07); border-radius:12px; overflow:hidden; margin-bottom:16px; }
+  .cc-section-header { padding:14px 20px; border-bottom:1px solid rgba(0,0,0,.06); display:flex; align-items:center; gap:8px; }
+  .cc-section-header h3 { font-size:14px; font-weight:600; color:#1C2833; margin:0; }
+  .cc-section-header i { font-size:17px; color:#0F6E56; }
+  .cc-section-body { padding:20px; }
+
+  .cc-form-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  @media(max-width:576px){ .cc-form-grid{ grid-template-columns:1fr; } }
+
+  .cc-field { display:flex; flex-direction:column; gap:5px; }
+  .cc-field label { font-size:12px; font-weight:600; color:#4A5568; }
+  .cc-field input, .cc-field select, .cc-field textarea {
+    width:100%; padding:9px 12px; border:1px solid #E2E8F0; border-radius:8px;
+    font-size:13px; background:#FAFBFC; color:#1C2833; outline:none;
+    transition:border-color .15s, box-shadow .15s;
+  }
+  .cc-field input:focus, .cc-field select:focus { border-color:#0F6E56; box-shadow:0 0 0 3px rgba(15,110,86,.1); background:#fff; }
+  .cc-field-error { font-size:11px; color:#C53030; }
+  .cc-field-hint  { font-size:11px; color:#A0AEC0; }
+
+  .cc-urgence-toggle { display:flex; align-items:center; gap:10px; padding:10px 14px; border:1px solid #E2E8F0; border-radius:8px; cursor:pointer; transition:.14s; }
+  .cc-urgence-toggle:hover { border-color:#0F6E56; background:#F0FBF6; }
+  .cc-urgence-toggle input { width:18px; height:18px; cursor:pointer; }
+  .cc-urgence-toggle .label { font-size:13px; font-weight:600; color:#4A5568; }
+  .cc-urgence-toggle .sub   { font-size:11px; color:#A0AEC0; }
+
+  .cc-form-errors { background:#FCEBEB; border:1px solid #F0D5D5; border-radius:9px; padding:12px 16px; margin-bottom:16px; font-size:13px; color:#791F1F; }
+  .cc-form-errors ul { margin:6px 0 0 16px; padding:0; }
+
+  .cc-form-footer { display:flex; gap:10px; flex-wrap:wrap; }
+  .btn-submit { background:#0F6E56; color:#fff; border:none; padding:10px 22px; border-radius:9px; font-size:13px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:7px; transition:.14s; }
+  .btn-submit:hover { background:#085041; }
+  .btn-back { background:#F4F9FC; color:#4A5568; border:1px solid rgba(0,0,0,.08); padding:10px 22px; border-radius:9px; font-size:13px; font-weight:600; text-decoration:none; display:inline-flex; align-items:center; gap:7px; }
+  .btn-back:hover { background:#E8EEF2; }
+
+  .seuil-hint { font-size:11px; color:#0C447C; background:#E6F1FB; border-radius:6px; padding:6px 10px; margin-top:6px; display:none; }
+  .seuil-hint.visible { display:block; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="cc-form-wrap">
+
+  <div class="cc-form-header">
+    <h1><i class="ti ti-flask"></i> Prescrire une analyse</h1>
+  </div>
+
+  <!-- Contexte verrouillé ─────────────────────────────────── -->
+  <div class="cc-context-card">
+    <div class="cc-ctx-col">
+      <div class="cc-ctx-label">Patient</div>
+      <div class="cc-ctx-val">{{ suivi.patient.nom }} {{ suivi.patient.prenom }}</div>
+      <div class="cc-ctx-sub">{{ suivi.patient.get_sexe_display }} · {{ suivi.patient.groupe_sanguin }}</div>
+    </div>
+    <div class="cc-ctx-sep"></div>
+    <div class="cc-ctx-col">
+      <div class="cc-ctx-label">Suivi médical du</div>
+      <div class="cc-ctx-val">{{ suivi.created_at|date:"d/m/Y" }}</div>
+      <div class="cc-ctx-sub">
+        {% if suivi.medecin %}Dr. {{ suivi.medecin.get_full_name|default:suivi.medecin.username }}{% endif %}
+        · Statut : {{ suivi.get_statut_display }}
+      </div>
+    </div>
+    <div class="cc-ctx-sep"></div>
+    <div class="cc-ctx-col">
+      <div class="cc-ctx-label">Prescripteur</div>
+      <div class="cc-ctx-val">Dr. {{ request.user.get_full_name|default:request.user.username }}</div>
+      <div class="cc-ctx-sub">{{ request.user.get_role_display }}</div>
+    </div>
+    <i class="ti ti-lock cc-lock-icon"></i>
+  </div>
+
+  {% if form.errors %}
+  <div class="cc-form-errors">
+    <strong>Erreurs :</strong>
+    <ul>
+      {% for field in form %}{% for e in field.errors %}<li><strong>{{ field.label }} :</strong> {{ e }}</li>{% endfor %}{% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  <form method="POST" novalidate>
+    {% csrf_token %}
+
+    <!-- Type d'analyse ─────────────────────────────────────── -->
+    <div class="cc-section">
+      <div class="cc-section-header">
+        <i class="ti ti-list-check"></i><h3>Type d'analyse</h3>
+      </div>
+      <div class="cc-section-body">
+        <div class="cc-field">
+          <label for="{{ form.type_test.id_for_label }}">Analyse à prescrire <span style="color:#C53030;">*</span></label>
+          {{ form.type_test }}
+          {% if form.type_test.errors %}<span class="cc-field-error">{{ form.type_test.errors|join:" " }}</span>{% endif %}
+          <div class="seuil-hint" id="seuil-hint">
+            <i class="ti ti-info-circle" style="margin-right:4px;"></i>
+            Valeurs de référence : <span id="seuil-hint-text"></span>
+          </div>
+        </div>
+        <div style="margin-top:12px;">
+          <label class="cc-urgence-toggle">
+            {{ form.urgence }}
+            <div>
+              <div class="label"><i class="ti ti-alert-triangle" style="color:#C53030;margin-right:4px;"></i>Analyse urgente</div>
+              <div class="sub">Traitement prioritaire par le laboratoire</div>
+            </div>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Seuils de référence ─────────────────────────────────── -->
+    <div class="cc-section">
+      <div class="cc-section-header">
+        <i class="ti ti-adjustments"></i><h3>Valeurs de référence</h3>
+      </div>
+      <div class="cc-section-body">
+        <div class="cc-form-grid">
+          <div class="cc-field">
+            <label for="{{ form.seuil_min.id_for_label }}">Seuil minimum normal</label>
+            {{ form.seuil_min }}
+            <span class="cc-field-hint">Pré-rempli automatiquement selon le type d'analyse</span>
+          </div>
+          <div class="cc-field">
+            <label for="{{ form.seuil_max.id_for_label }}">Seuil maximum normal</label>
+            {{ form.seuil_max }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Contexte pathologique ──────────────────────────────── -->
+    <div class="cc-section">
+      <div class="cc-section-header">
+        <i class="ti ti-virus"></i><h3>Contexte pathologique</h3>
+      </div>
+      <div class="cc-section-body">
+        <div class="cc-field">
+          <label for="{{ form.maladie.id_for_label }}">Maladie chronique concernée</label>
+          {{ form.maladie }}
+          <span class="cc-field-hint">Facultatif — sélectionnez parmi les maladies de ce patient</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="cc-form-footer">
+      <button type="submit" class="btn-submit">
+        <i class="ti ti-send"></i> Envoyer au laboratoire
+      </button>
+      <a href="{% url 'suivi-detail' suivi.pk %}" class="btn-back">
+        <i class="ti ti-arrow-left"></i> Annuler
+      </a>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  const DEFAULTS = {{ type_defaults_json|safe }};
+
+  function updateSeuils() {
+    const typeSelect = document.getElementById('id_type_test');
+    if (!typeSelect) return;
+    const type = typeSelect.value;
+    const d = DEFAULTS[type] || {};
+
+    const minFld = document.getElementById('id_seuil_min');
+    const maxFld = document.getElementById('id_seuil_max');
+    const hint   = document.getElementById('seuil-hint');
+    const hintTxt= document.getElementById('seuil-hint-text');
+
+    if (minFld && d.seuil_min !== undefined && d.seuil_min !== null) minFld.value = d.seuil_min;
+    if (maxFld && d.seuil_max !== undefined && d.seuil_max !== null) maxFld.value = d.seuil_max;
+
+    if (hint && hintTxt) {
+      let txt = '';
+      if (d.seuil_min !== null && d.seuil_min !== undefined) txt += 'Min : ' + d.seuil_min;
+      if (d.seuil_min !== null && d.seuil_max !== null) txt += ' — ';
+      if (d.seuil_max !== null && d.seuil_max !== undefined) txt += 'Max : ' + d.seuil_max;
+      if (d.unite) txt += ' ' + d.unite;
+      if (txt) { hintTxt.textContent = txt; hint.classList.add('visible'); }
+      else { hint.classList.remove('visible'); }
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    const sel = document.getElementById('id_type_test');
+    if (sel) { sel.addEventListener('change', updateSeuils); updateSeuils(); }
+  });
+})();
+</script>
+{% endblock %}

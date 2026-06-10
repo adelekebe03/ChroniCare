@@ -1,0 +1,294 @@
+{% extends 'core/base.html' %}
+{% block title %}Dossier médical — {{ patient.nom }} {{ patient.prenom }} — ChroniCare{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* En-tête patient */
+  .cc-dossier-header { background:linear-gradient(135deg,#085041,#0F6E56); color:#fff; border-radius:14px; padding:22px 26px; margin-bottom:22px; display:flex; align-items:center; gap:18px; flex-wrap:wrap; }
+  .pt-avatar-header { width:56px; height:56px; border-radius:50%; background:rgba(255,255,255,.2); color:#fff; display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:700; flex-shrink:0; }
+  .pt-avatar-header.female { background:rgba(255,255,255,.2); }
+  .cc-dossier-name { font-size:20px; font-weight:700; margin:0 0 3px; }
+  .cc-dossier-meta { font-size:13px; color:rgba(255,255,255,.8); }
+  .cc-dossier-badges { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
+  .cc-dossier-badge { display:inline-flex; align-items:center; gap:5px; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600; background:rgba(255,255,255,.18); color:#fff; }
+  .cc-dossier-header-actions { margin-left:auto; display:flex; gap:8px; flex-wrap:wrap; }
+  .btn-header { display:inline-flex; align-items:center; gap:6px; padding:8px 14px; border-radius:9px; font-size:12px; font-weight:600; text-decoration:none; transition:.14s; }
+  .btn-header-white { background:rgba(255,255,255,.18); color:#fff; border:1px solid rgba(255,255,255,.3); }
+  .btn-header-white:hover { background:rgba(255,255,255,.28); color:#fff; }
+
+  /* Layout deux colonnes */
+  .cc-dossier-layout { display:grid; grid-template-columns:1fr 320px; gap:20px; }
+  @media(max-width:960px){ .cc-dossier-layout{ grid-template-columns:1fr; } }
+
+  /* Sections */
+  .cc-section { background:#fff; border:1px solid rgba(0,0,0,.07); border-radius:12px; overflow:hidden; margin-bottom:16px; }
+  .cc-section-header { padding:14px 18px; border-bottom:1px solid rgba(0,0,0,.06); display:flex; align-items:center; justify-content:space-between; }
+  .cc-section-title { font-size:14px; font-weight:600; color:#1C2833; display:flex; align-items:center; gap:8px; margin:0; }
+  .cc-section-title i { font-size:17px; color:#0F6E56; }
+  .cc-section-body { padding:16px 18px; }
+  .cc-section-link { font-size:12px; color:#0F6E56; text-decoration:none; font-weight:500; }
+
+  /* Timeline des suivis médicaux */
+  .cc-suivi-card { border:1px solid rgba(0,0,0,.06); border-radius:10px; padding:16px; margin-bottom:12px; position:relative; }
+  .cc-suivi-card:last-child { margin-bottom:0; }
+  .cc-suivi-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; flex-wrap:wrap; gap:8px; }
+  .cc-suivi-date { font-size:12px; color:#717D7E; display:flex; align-items:center; gap:5px; }
+  .cc-suivi-date i { font-size:14px; }
+  .cc-suivi-medecin { font-size:12px; font-weight:600; color:#0F6E56; }
+
+  /* Statut badge */
+  .statut-badge { display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:20px; font-size:12px; font-weight:600; }
+  .sb-stable   { background:#E6F1FB; color:#0C447C; }
+  .sb-ameliore { background:#E1F5EE; color:#085041; }
+  .sb-critique { background:#FCEBEB; color:#791F1F; }
+
+  /* Indicateurs vitaux - grille */
+  .cc-vitals { display:grid; grid-template-columns:repeat(auto-fit, minmax(110px,1fr)); gap:10px; margin-bottom:12px; }
+  .cc-vital { background:#F4F9FC; border-radius:8px; padding:10px 12px; text-align:center; }
+  .cc-vital-label { font-size:10px; font-weight:700; color:#A0AEC0; text-transform:uppercase; margin-bottom:4px; }
+  .cc-vital-val { font-size:18px; font-weight:700; color:#1C2833; line-height:1; }
+  .cc-vital-unit { font-size:10px; color:#717D7E; }
+
+  /* Indicateurs spéciaux maladies chroniques */
+  .cc-vital.highlight { border:1px solid rgba(15,110,86,.2); }
+  .cc-vital.warn { background:#FAEEDA; border:1px solid #F0E0C0; }
+  .cc-vital.warn .cc-vital-val { color:#633806; }
+  .cc-vital.critical { background:#FCEBEB; border:1px solid #F0D5D5; }
+  .cc-vital.critical .cc-vital-val { color:#791F1F; }
+
+  /* Observations */
+  .cc-obs { background:#F4F9FC; border-radius:8px; padding:12px; font-size:13px; color:#4A5568; line-height:1.6; border-left:3px solid #0F6E56; }
+
+  /* Maladies sidebar */
+  .cc-maladie-item { display:flex; align-items:flex-start; gap:10px; padding:10px 0; border-bottom:1px solid rgba(0,0,0,.04); }
+  .cc-maladie-item:last-child { border-bottom:none; }
+  .cc-mal-dot { width:10px; height:10px; border-radius:50%; margin-top:4px; flex-shrink:0; }
+  .dot-active  { background:#E53E3E; }
+  .dot-stable  { background:#3182CE; }
+  .dot-guerie  { background:#38A169; }
+  .cc-mal-name { font-size:13px; font-weight:600; color:#1C2833; }
+  .cc-mal-date { font-size:11px; color:#A0AEC0; }
+  .cc-mal-status { display:inline-flex; font-size:10px; font-weight:600; padding:2px 7px; border-radius:20px; margin-top:2px; }
+  .ms-active { background:#FCEBEB; color:#791F1F; }
+  .ms-stable { background:#E6F1FB; color:#0C447C; }
+  .ms-guerie { background:#E1F5EE; color:#085041; }
+
+  /* Empty state */
+  .cc-empty { text-align:center; padding:30px 20px; color:#A0AEC0; }
+  .cc-empty i { font-size:36px; display:block; margin-bottom:8px; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- En-tête dossier -->
+<div class="cc-dossier-header">
+  <div class="pt-avatar-header {% if patient.sexe == 'F' %}female{% endif %}">
+    {{ patient.prenom|first|upper }}{{ patient.nom|first|upper }}
+  </div>
+  <div>
+    <div class="cc-dossier-name">{{ patient.nom }} {{ patient.prenom }}</div>
+    <div class="cc-dossier-meta">
+      {{ patient.get_sexe_display }}
+      {% if patient.date_naissance %} · Né(e) le {{ patient.date_naissance|date:"d/m/Y" }}{% endif %}
+      {% if patient.medecin_traitant %} · Dr. {{ patient.medecin_traitant.get_full_name|default:patient.medecin_traitant.username }}{% endif %}
+    </div>
+    {% with mc=patient.maladies.count %}
+    <div class="cc-dossier-badges">
+      <span class="cc-dossier-badge"><i class="ti ti-droplet"></i> {{ patient.groupe_sanguin }}</span>
+      {% if patient.assurance %}<span class="cc-dossier-badge"><i class="ti ti-shield"></i> {{ patient.assurance }}</span>{% endif %}
+      <span class="cc-dossier-badge"><i class="ti ti-virus"></i> {{ mc }} maladie{{ mc|pluralize }} chronique{{ mc|pluralize }}</span>
+      <span class="cc-dossier-badge"><i class="ti ti-stethoscope"></i> {{ suivis|length }} suivi{{ suivis|length|pluralize }}</span>
+    </div>
+    {% endwith %}
+  </div>
+  <div class="cc-dossier-header-actions">
+    <a href="{% url 'patient-detail' patient.id %}" class="btn-header btn-header-white">
+      <i class="ti ti-arrow-left"></i> Fiche patient
+    </a>
+    <a href="{% url 'suivi-create' %}" class="btn-header btn-header-white">
+      <i class="ti ti-plus"></i> Nouveau suivi
+    </a>
+  </div>
+</div>
+
+<div class="cc-dossier-layout">
+
+  <!-- ── Colonne principale : historique des suivis ────────────── -->
+  <div>
+    <div class="cc-section">
+      <div class="cc-section-header">
+        <h3 class="cc-section-title"><i class="ti ti-stethoscope"></i> Historique des suivis médicaux</h3>
+        <a href="{% url 'suivi-create' %}" class="cc-section-link"><i class="ti ti-plus"></i> Nouveau suivi</a>
+      </div>
+      <div class="cc-section-body">
+
+        {% for suivi in suivis %}
+        <div class="cc-suivi-card">
+
+          <!-- En-tête du suivi -->
+          <div class="cc-suivi-top">
+            <div class="cc-suivi-date">
+              <i class="ti ti-calendar"></i>
+              {# created_at est le bon champ — SuiviMedical.created_at (auto_now_add) #}
+              {{ suivi.created_at|date:"d/m/Y à H:i" }}
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              {% if suivi.medecin %}
+                <span class="cc-suivi-medecin">Dr. {{ suivi.medecin.get_full_name|default:suivi.medecin.username }}</span>
+              {% endif %}
+              <span class="statut-badge
+                {% if suivi.statut == 'stable' %}sb-stable
+                {% elif suivi.statut == 'ameliore' %}sb-ameliore
+                {% else %}sb-critique{% endif %}">
+                <i class="ti ti-{% if suivi.statut == 'stable' %}minus{% elif suivi.statut == 'ameliore' %}trending-up{% else %}alert-triangle{% endif %}"></i>
+                {{ suivi.get_statut_display }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Indicateurs vitaux — champs réels de SuiviMedical -->
+          <div class="cc-vitals">
+            {% if suivi.poids %}
+              <div class="cc-vital highlight">
+                <div class="cc-vital-label">Poids</div>
+                <div class="cc-vital-val">{{ suivi.poids }}</div>
+                <div class="cc-vital-unit">kg</div>
+              </div>
+            {% endif %}
+            {% if suivi.taille %}
+              <div class="cc-vital">
+                <div class="cc-vital-label">Taille</div>
+                <div class="cc-vital-val">{{ suivi.taille }}</div>
+                <div class="cc-vital-unit">cm</div>
+              </div>
+            {% endif %}
+            {% if suivi.imc %}
+              <div class="cc-vital {% if suivi.imc > 30 %}warn{% elif suivi.imc < 18.5 %}warn{% endif %}">
+                <div class="cc-vital-label">IMC</div>
+                <div class="cc-vital-val">{{ suivi.imc }}</div>
+                <div class="cc-vital-unit">kg/m²</div>
+              </div>
+            {% endif %}
+            {# tension_systolique et tension_diastolique sont les bons champs du modèle #}
+            {% if suivi.tension_systolique and suivi.tension_diastolique %}
+              <div class="cc-vital {% if suivi.tension_systolique > 14 %}warn{% endif %}">
+                <div class="cc-vital-label">Tension</div>
+                <div class="cc-vital-val">{{ suivi.tension_systolique }}/{{ suivi.tension_diastolique }}</div>
+                <div class="cc-vital-unit">mmHg</div>
+              </div>
+            {% endif %}
+            {% if suivi.glycemie %}
+              <div class="cc-vital {% if suivi.glycemie > 1.26 %}critical{% elif suivi.glycemie > 1.1 %}warn{% endif %}">
+                <div class="cc-vital-label">Glycémie</div>
+                <div class="cc-vital-val">{{ suivi.glycemie }}</div>
+                <div class="cc-vital-unit">g/L</div>
+              </div>
+            {% endif %}
+            {% if suivi.cd4 %}
+              <div class="cc-vital {% if suivi.cd4 < 200 %}critical{% elif suivi.cd4 < 350 %}warn{% endif %}">
+                <div class="cc-vital-label">CD4</div>
+                <div class="cc-vital-val">{{ suivi.cd4|floatformat:0 }}</div>
+                <div class="cc-vital-unit">cells/mm³</div>
+              </div>
+            {% endif %}
+            {% if suivi.charge_virale %}
+              <div class="cc-vital">
+                <div class="cc-vital-label">Charge virale</div>
+                <div class="cc-vital-val">{{ suivi.charge_virale|floatformat:0 }}</div>
+                <div class="cc-vital-unit">copies/mL</div>
+              </div>
+            {% endif %}
+          </div>
+
+          <!-- Observations -->
+          {% if suivi.observations %}
+            <div class="cc-obs">
+              <strong style="font-size:11px;color:#717D7E;text-transform:uppercase;letter-spacing:.04em;">Observations</strong><br>
+              {{ suivi.observations }}
+            </div>
+          {% endif %}
+
+          <!-- Liens actions -->
+          <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+            <a href="{% url 'suivi-detail' suivi.id %}" style="font-size:12px;color:#0F6E56;text-decoration:none;font-weight:500;">
+              <i class="ti ti-eye"></i> Détails complets
+            </a>
+            <a href="{% url 'creer-prescription' suivi.id %}" style="font-size:12px;color:#4A2E7B;text-decoration:none;font-weight:500;">
+              <i class="ti ti-prescription"></i> Créer une prescription
+            </a>
+          </div>
+        </div>
+        {% empty %}
+          <div class="cc-empty">
+            <i class="ti ti-stethoscope"></i>
+            Aucun suivi médical enregistré pour ce patient.
+            <br><a href="{% url 'suivi-create' %}" style="color:#0F6E56;font-weight:600;">Créer le premier suivi →</a>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Colonne latérale : maladies chroniques ────────────────── -->
+  <div>
+    <!-- Maladies chroniques -->
+    <div class="cc-section" style="margin-bottom:16px;">
+      <div class="cc-section-header">
+        <h3 class="cc-section-title"><i class="ti ti-virus"></i> Maladies chroniques</h3>
+        <a href="{% url 'patient-maladie-create' %}?patient={{ patient.id }}" class="cc-section-link">
+          <i class="ti ti-plus"></i> Ajouter
+        </a>
+      </div>
+      <div class="cc-section-body">
+        {% for pm in patient.maladies.all %}
+          <div class="cc-maladie-item">
+            <div class="cc-mal-dot
+              {% if pm.status == 'active' %}dot-active
+              {% elif pm.status == 'stable' %}dot-stable
+              {% else %}dot-guerie{% endif %}">
+            </div>
+            <div>
+              <div class="cc-mal-name">{{ pm.maladie.nom }}</div>
+              <div class="cc-mal-date">Diagnostic : {{ pm.date_diagnostic|date:"d/m/Y" }}</div>
+              <span class="cc-mal-status
+                {% if pm.status == 'active' %}ms-active
+                {% elif pm.status == 'stable' %}ms-stable
+                {% else %}ms-guerie{% endif %}">
+                {{ pm.get_status_display }}
+              </span>
+            </div>
+          </div>
+        {% empty %}
+          <p style="color:#A0AEC0;font-size:13px;text-align:center;padding:8px 0;">Aucune maladie enregistrée.</p>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Antécédents médicaux -->
+    <div class="cc-section">
+      <div class="cc-section-header">
+        <h3 class="cc-section-title"><i class="ti ti-notes"></i> Antécédents</h3>
+      </div>
+      <div class="cc-section-body">
+        {% if patient.antecedents_personnels %}
+          <div style="margin-bottom:12px;">
+            <div style="font-size:11px;font-weight:700;color:#A0AEC0;text-transform:uppercase;margin-bottom:5px;">Personnels</div>
+            <div style="font-size:13px;color:#4A5568;line-height:1.6;">{{ patient.antecedents_personnels }}</div>
+          </div>
+        {% endif %}
+        {% if patient.antecedents_familiaux %}
+          <div>
+            <div style="font-size:11px;font-weight:700;color:#A0AEC0;text-transform:uppercase;margin-bottom:5px;">Familiaux</div>
+            <div style="font-size:13px;color:#4A5568;line-height:1.6;">{{ patient.antecedents_familiaux }}</div>
+          </div>
+        {% endif %}
+        {% if not patient.antecedents_personnels and not patient.antecedents_familiaux %}
+          <p style="color:#A0AEC0;font-size:13px;text-align:center;padding:8px 0;">Aucun antécédent renseigné.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

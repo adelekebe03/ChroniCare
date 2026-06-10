@@ -1,0 +1,332 @@
+{% extends "core/base.html" %}
+{% block title %}Gestion du stock — ChroniCare{% endblock %}
+{% block page_title %}Gestion du stock pharmacie{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* ── Barre d'actions ───────────────────────────────────────── */
+  .cc-actions-bar { display:flex; gap:10px; margin-bottom:20px; flex-wrap:wrap; align-items:center; }
+  .btn-cc { display:inline-flex; align-items:center; gap:6px; padding:9px 16px; border-radius:9px; font-size:13px; font-weight:600; text-decoration:none; border:none; cursor:pointer; transition:.15s; }
+  .btn-primary   { background:#6B46C1; color:#fff; }
+  .btn-primary:hover   { background:#4A2E7B; color:#fff; }
+  .btn-secondary { background:#fff; border:1px solid rgba(0,0,0,.12); color:#4A5568; }
+  .btn-secondary:hover { background:#F4F9FC; }
+  .btn-danger    { background:#FCEBEB; color:#791F1F; border:1px solid #F5C6CB; }
+  .btn-danger:hover    { background:#F8D7DA; }
+  .btn-sm { padding:5px 10px; font-size:11px; }
+
+  /* ── Onglets ───────────────────────────────────────────────── */
+  .cc-tabs-wrap { background:#fff; border:1px solid rgba(0,0,0,.07); border-radius:14px; overflow:hidden; }
+
+  .cc-tabs-nav { display:flex; border-bottom:1px solid rgba(0,0,0,.07); background:#FAFBFC; padding:0 6px; gap:2px; }
+  .tab-btn {
+    padding:14px 22px; font-size:13px; font-weight:600; border:none; background:none;
+    cursor:pointer; color:#717D7E; border-bottom:3px solid transparent; margin-bottom:-1px;
+    display:inline-flex; align-items:center; gap:8px; transition:.15s;
+    border-radius:10px 10px 0 0; white-space:nowrap;
+  }
+  .tab-btn i { font-size:17px; }
+  .tab-btn:hover { color:#6B46C1; background:#F3EFFF; }
+  .tab-btn.active { color:#6B46C1; border-bottom-color:#6B46C1; background:#fff; }
+  .tab-count {
+    background:#EDE7F6; color:#4A2E7B; font-size:10px; font-weight:700;
+    padding:2px 7px; border-radius:20px; min-width:20px; text-align:center;
+  }
+  .tab-btn.active .tab-count { background:#6B46C1; color:#fff; }
+
+  /* ── Panneaux ──────────────────────────────────────────────── */
+  .tab-pane { display:none; }
+  .tab-pane.active { display:block; }
+
+  /* ── Tableaux ──────────────────────────────────────────────── */
+  .tab-toolbar { display:flex; align-items:center; justify-content:space-between; padding:14px 18px; border-bottom:1px solid rgba(0,0,0,.05); flex-wrap:wrap; gap:8px; }
+  .tab-toolbar-title { font-size:13px; font-weight:700; color:#4A5568; display:flex; align-items:center; gap:8px; }
+  .tab-toolbar-title i { color:#6B46C1; font-size:16px; }
+
+  table.cc-table { width:100%; border-collapse:collapse; font-size:13px; }
+  table.cc-table th { padding:10px 14px; text-align:left; font-size:11px; font-weight:700; color:#A0AEC0; text-transform:uppercase; letter-spacing:.04em; background:#FAFBFC; border-bottom:1px solid rgba(0,0,0,.06); }
+  table.cc-table td { padding:11px 14px; border-bottom:1px solid rgba(0,0,0,.04); vertical-align:middle; }
+  table.cc-table tbody tr:last-child td { border-bottom:none; }
+  table.cc-table tbody tr:hover { background:#F9F6FF; }
+
+  /* ── Badges ────────────────────────────────────────────────── */
+  .badge { display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:600; padding:3px 9px; border-radius:20px; white-space:nowrap; }
+  .b-ok        { background:#E1F5EE; color:#085041; }
+  .b-low       { background:#FAEEDA; color:#633806; }
+  .b-rupture   { background:#FCEBEB; color:#791F1F; }
+  .b-expire    { background:#FCEBEB; color:#791F1F; }
+  .b-lot       { background:#EDE7F6; color:#4A2E7B; }
+  .b-gratuit   { background:#E6F1FB; color:#0C447C; }
+  .b-payant    { background:#FAEEDA; color:#633806; }
+
+  /* ── État vide ─────────────────────────────────────────────── */
+  .cc-empty { text-align:center; padding:36px 20px; color:#A0AEC0; }
+  .cc-empty i { font-size:36px; display:block; margin-bottom:10px; color:#CBD5E0; }
+  .cc-empty p { font-size:13px; margin:0; }
+
+  /* ── KPI mini-bandeau ──────────────────────────────────────── */
+  .kpi-row { display:grid; grid-template-columns:repeat(auto-fit, minmax(130px,1fr)); gap:12px; padding:16px 18px; border-bottom:1px solid rgba(0,0,0,.05); }
+  .kpi-mini { background:#F9F6FF; border:1px solid rgba(107,70,193,.1); border-radius:9px; padding:10px 14px; }
+  .kpi-mini .val { font-size:22px; font-weight:700; color:#4A2E7B; line-height:1; }
+  .kpi-mini .lbl { font-size:11px; color:#A0AEC0; margin-top:3px; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+{# ── Barre d'actions globale ─────────────────────────────────── #}
+<div class="cc-actions-bar">
+  <a href="{% url 'medication-create' %}" class="btn-cc btn-primary">
+    <i class="ti ti-plus"></i> Ajouter un médicament
+  </a>
+  <a href="{% url 'add-lot' %}" class="btn-cc btn-primary">
+    <i class="ti ti-truck-delivery"></i> Réceptionner un lot
+  </a>
+  <a href="{% url 'pharmacie-dashboard' %}" class="btn-cc btn-secondary" style="margin-left:auto;">
+    <i class="ti ti-arrow-left"></i> Retour au tableau de bord
+  </a>
+</div>
+
+{# ── Conteneur à onglets ─────────────────────────────────────── #}
+<div class="cc-tabs-wrap">
+
+  {# ── Navigation onglets ──────────────────────────────────────── #}
+  <nav class="cc-tabs-nav" role="tablist" aria-label="Gestion du stock">
+    <button class="tab-btn active" id="tab-btn-medicaments"
+            role="tab" aria-selected="true" aria-controls="tab-medicaments"
+            data-tab="medicaments">
+      <i class="ti ti-pill"></i>
+      Médicaments
+      <span class="tab-count">{{ medications|length }}</span>
+    </button>
+    <button class="tab-btn" id="tab-btn-lots"
+            role="tab" aria-selected="false" aria-controls="tab-lots"
+            data-tab="lots">
+      <i class="ti ti-packages"></i>
+      Lots
+      <span class="tab-count">{{ lots|length }}</span>
+    </button>
+  </nav>
+
+  {# ══════════════════════════════════════════════════════════════
+     ONGLET 1 — MÉDICAMENTS
+  ══════════════════════════════════════════════════════════════ #}
+  <div id="tab-medicaments" class="tab-pane active" role="tabpanel" aria-labelledby="tab-btn-medicaments">
+
+    {# KPIs — valeurs calculées par JS depuis les badges du tableau #}
+    <div class="kpi-row">
+      <div class="kpi-mini">
+        <div class="val" id="kpi-total-med">{{ medications|length }}</div>
+        <div class="lbl">Médicaments référencés</div>
+      </div>
+      <div class="kpi-mini">
+        <div class="val" id="kpi-rupture" style="color:#791F1F;">—</div>
+        <div class="lbl">En rupture de stock</div>
+      </div>
+      <div class="kpi-mini">
+        <div class="val" id="kpi-faible" style="color:#633806;">—</div>
+        <div class="lbl">Stock faible</div>
+      </div>
+      <div class="kpi-mini">
+        <div class="val" id="kpi-ok" style="color:#085041;">—</div>
+        <div class="lbl">Disponibles</div>
+      </div>
+    </div>
+
+    {# Tableau médicaments #}
+    <div class="tab-toolbar">
+      <span class="tab-toolbar-title"><i class="ti ti-list"></i> Liste des médicaments</span>
+      <a href="{% url 'medication-create' %}" class="btn-cc btn-primary btn-sm">
+        <i class="ti ti-plus"></i> Ajouter
+      </a>
+    </div>
+
+    <table class="cc-table">
+      <thead>
+        <tr>
+          <th>Médicament</th>
+          <th>Forme</th>
+          <th>Statut</th>
+          <th>Stock total</th>
+          <th>Lots actifs</th>
+          <th>Seuil d'alerte</th>
+          <th>Prix unitaire</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for med in medications %}
+        <tr>
+          <td><strong style="color:#1C2833;">{{ med.nom }}</strong></td>
+          <td>{{ med.get_unite_display }}</td>
+          <td>
+            {% if med.prix == 0 %}
+              <span class="badge b-gratuit"><i class="ti ti-gift" style="font-size:11px;"></i> Gratuit</span>
+            {% else %}
+              <span class="badge b-payant"><i class="ti ti-currency-franc" style="font-size:11px;"></i> Payant</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if med.est_en_rupture %}
+              <span class="badge b-rupture"><i class="ti ti-alert-triangle" style="font-size:11px;"></i> {{ med.stock_total }} — Rupture</span>
+            {% elif med.stock_total <= med.stock_minimum|add:5 %}
+              <span class="badge b-low"><i class="ti ti-alert-circle" style="font-size:11px;"></i> {{ med.stock_total }} — Faible</span>
+            {% else %}
+              <span class="badge b-ok"><i class="ti ti-check" style="font-size:11px;"></i> {{ med.stock_total }}</span>
+            {% endif %}
+          </td>
+          <td>
+            <span class="badge b-lot">{{ med.lots.count }} lot{{ med.lots.count|pluralize }}</span>
+          </td>
+          <td style="color:#717D7E;">{{ med.stock_minimum }}</td>
+          <td>
+            {% if med.prix == 0 %}
+              <span style="color:#085041;font-weight:600;">Gratuit</span>
+            {% else %}
+              <strong>{{ med.prix|floatformat:0 }}</strong> <span style="font-size:11px;color:#A0AEC0;">GNF</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="7">
+            <div class="cc-empty">
+              <i class="ti ti-pill"></i>
+              <p>Aucun médicament enregistré.<br>
+                <a href="{% url 'medication-create' %}" style="color:#6B46C1;font-weight:600;">Ajouter le premier médicament →</a>
+              </p>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {# ══════════════════════════════════════════════════════════════
+     ONGLET 2 — LOTS
+  ══════════════════════════════════════════════════════════════ #}
+  <div id="tab-lots" class="tab-pane" role="tabpanel" aria-labelledby="tab-btn-lots">
+
+    {# Toolbar #}
+    <div class="tab-toolbar">
+      <span class="tab-toolbar-title">
+        <i class="ti ti-packages"></i> Lots en stock
+        <span style="font-size:11px;color:#A0AEC0;font-weight:400;">— ordre FIFO (expiration croissante)</span>
+      </span>
+      <a href="{% url 'add-lot' %}" class="btn-cc btn-primary btn-sm">
+        <i class="ti ti-truck-delivery"></i> Réceptionner un lot
+      </a>
+    </div>
+
+    <table class="cc-table">
+      <thead>
+        <tr>
+          <th>Médicament</th>
+          <th>N° de lot</th>
+          <th>Quantité restante</th>
+          <th>Date de réception</th>
+          <th>Date d'expiration</th>
+          <th>Statut</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for lot in lots %}
+        <tr>
+          <td><strong style="color:#1C2833;">{{ lot.medication.nom }}</strong></td>
+          <td><span class="badge b-lot">{{ lot.numero_lot|default:"—" }}</span></td>
+          <td>
+            {% if lot.est_expire %}
+              <span style="color:#791F1F;font-weight:600;">{{ lot.quantite }}</span>
+            {% elif lot.quantite <= 5 %}
+              <span style="color:#633806;font-weight:600;">{{ lot.quantite }}</span>
+            {% else %}
+              <strong>{{ lot.quantite }}</strong>
+            {% endif %}
+          </td>
+          <td style="color:#717D7E;">{{ lot.date_reception|date:"d/m/Y" }}</td>
+          <td>
+            {% if lot.est_expire %}
+              <span style="color:#791F1F;font-weight:600;">{{ lot.date_expiration|date:"d/m/Y" }}</span>
+            {% else %}
+              {{ lot.date_expiration|date:"d/m/Y" }}
+            {% endif %}
+          </td>
+          <td>
+            {% if lot.est_expire %}
+              <span class="badge b-expire"><i class="ti ti-x" style="font-size:10px;"></i> Expiré</span>
+            {% elif lot.quantite <= 5 %}
+              <span class="badge b-low"><i class="ti ti-alert-circle" style="font-size:10px;"></i> Faible stock</span>
+            {% else %}
+              <span class="badge b-ok"><i class="ti ti-check" style="font-size:10px;"></i> Disponible</span>
+            {% endif %}
+          </td>
+          <td>
+            <form method="POST" action="{% url 'delete-lot' lot.id %}"
+                  style="display:inline;"
+                  onsubmit="return confirm('Supprimer le lot {{ lot.numero_lot|default:lot.id }} ?');">
+              {% csrf_token %}
+              <button type="submit" class="btn-cc btn-danger btn-sm">
+                <i class="ti ti-trash"></i> Supprimer
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="7">
+            <div class="cc-empty">
+              <i class="ti ti-packages"></i>
+              <p>Aucun lot enregistré.<br>
+                <a href="{% url 'add-lot' %}" style="color:#6B46C1;font-weight:600;">Réceptionner le premier lot →</a>
+              </p>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+</div>{# fin .cc-tabs-wrap #}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  // ── KPIs médicaments : compter les badges du tableau ──────────
+  const rows = document.querySelectorAll('#tab-medicaments tbody tr');
+  let rupture = 0, faible = 0, ok = 0;
+  rows.forEach(function(row) {
+    const badge = row.querySelector('td:nth-child(4) .badge');
+    if (!badge) return;
+    if (badge.classList.contains('b-rupture')) rupture++;
+    else if (badge.classList.contains('b-low'))     faible++;
+    else if (badge.classList.contains('b-ok'))      ok++;
+  });
+  document.getElementById('kpi-rupture').textContent = rupture;
+  document.getElementById('kpi-faible').textContent  = faible;
+  document.getElementById('kpi-ok').textContent      = ok;
+
+  // ── Onglets ───────────────────────────────────────────────────
+  const btns  = document.querySelectorAll('.tab-btn');
+  const panes = document.querySelectorAll('.tab-pane');
+
+  function activate(name) {
+    btns.forEach(b => {
+      const on = b.dataset.tab === name;
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-selected', on);
+    });
+    panes.forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
+    history.replaceState(null, '', '#' + name);
+  }
+
+  btns.forEach(b => b.addEventListener('click', () => activate(b.dataset.tab)));
+
+  // Restaurer l'onglet depuis l'URL (#medicaments ou #lots)
+  const hash = location.hash.replace('#', '');
+  if (hash === 'lots' || hash === 'medicaments') activate(hash);
+})();
+</script>
+{% endblock %}

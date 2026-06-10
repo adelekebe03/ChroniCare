@@ -1,0 +1,176 @@
+{% extends 'core/base.html' %}
+{% block title %}Rendez-vous — ChroniCare{% endblock %}
+{% block page_title %}Rendez-vous{% endblock %}
+
+{% block extra_css %}
+<style>
+  .cc-page-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:22px; flex-wrap:wrap; gap:12px; }
+  .cc-page-header h1 { font-size:20px; font-weight:700; color:#1C2833; margin:0; display:flex; align-items:center; gap:8px; }
+  .cc-page-header h1 i { color:#0F6E56; }
+
+  .cc-filters { background:#fff; border:1px solid rgba(0,0,0,.07); border-radius:12px; padding:14px 18px; margin-bottom:18px; display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; }
+  .cc-filter-field { display:flex; flex-direction:column; gap:4px; min-width:150px; flex:1; }
+  .cc-filter-field label { font-size:11px; font-weight:600; color:#717D7E; text-transform:uppercase; }
+  .cc-filter-field input, .cc-filter-field select { padding:8px 12px; border:1px solid #E2E8F0; border-radius:8px; font-size:13px; outline:none; background:#FAFBFC; }
+  .cc-filter-field input:focus, .cc-filter-field select:focus { border-color:#0F6E56; }
+  .cc-filter-btn { padding:8px 18px; background:#0F6E56; color:#fff; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; transition:.14s; }
+  .cc-filter-btn:hover { background:#085041; }
+  .cc-filter-reset { padding:8px 14px; background:#F4F9FC; color:#4A5568; border:1px solid rgba(0,0,0,.08); border-radius:8px; font-size:13px; text-decoration:none; }
+
+  .cc-card { background:#fff; border:1px solid rgba(0,0,0,.07); border-radius:12px; overflow:hidden; }
+  .cc-card-header { display:flex; align-items:center; justify-content:space-between; padding:14px 20px; border-bottom:1px solid rgba(0,0,0,.06); }
+  .cc-card-title { font-size:14px; font-weight:600; color:#1C2833; display:flex; align-items:center; gap:8px; margin:0; }
+  .cc-card-title i { color:#0F6E56; font-size:17px; }
+  .cc-table-wrap { overflow-x:auto; }
+
+  table.cc-table { width:100%; border-collapse:collapse; font-size:13px; }
+  table.cc-table th { padding:10px 16px; text-align:left; font-size:11px; font-weight:700; color:#A0AEC0; text-transform:uppercase; letter-spacing:.04em; border-bottom:1px solid rgba(0,0,0,.06); }
+  table.cc-table td { padding:12px 16px; border-bottom:1px solid rgba(0,0,0,.04); vertical-align:middle; }
+  table.cc-table tbody tr:hover { background:#F7FAFB; }
+  table.cc-table tbody tr:last-child td { border-bottom:none; }
+
+  /* Statut badges */
+  .sb { display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:20px; font-size:11px; font-weight:600; }
+  .sb-planifie  { background:#FAEEDA; color:#633806; }
+  .sb-effectue  { background:#E1F5EE; color:#085041; }
+  .sb-annule    { background:#FCEBEB; color:#791F1F; }
+
+  /* Actions */
+  .cc-actions { display:flex; gap:5px; flex-wrap:wrap; }
+  .cc-btn { display:inline-flex; align-items:center; gap:4px; padding:6px 10px; border-radius:7px; font-size:12px; font-weight:500; text-decoration:none; transition:.14s; border:none; cursor:pointer; white-space:nowrap; }
+  .btn-view   { background:#E1F5EE; color:#085041; } .btn-view:hover   { background:#C5E5D5; }
+  .btn-edit   { background:#FAEEDA; color:#633806; } .btn-edit:hover   { background:#F0E0C0; }
+  .btn-delete { background:#FCEBEB; color:#791F1F; } .btn-delete:hover { background:#F0D5D5; }
+  .btn-suivi  { background:#E6F1FB; color:#0C447C; } .btn-suivi:hover  { background:#C5D8EF; }
+
+  .btn-primary-sm { background:#0F6E56; color:#fff; padding:8px 16px; border-radius:9px; font-size:13px; font-weight:600; text-decoration:none; display:inline-flex; align-items:center; gap:6px; transition:.14s; }
+  .btn-primary-sm:hover { background:#085041; color:#fff; }
+  .btn-cal { background:#E6F1FB; color:#0C447C; padding:8px 14px; border-radius:9px; font-size:13px; font-weight:600; text-decoration:none; display:inline-flex; align-items:center; gap:6px; transition:.14s; }
+  .btn-cal:hover { background:#C5D8EF; color:#0C447C; }
+
+  .cc-empty { text-align:center; padding:40px; color:#A0AEC0; }
+  .cc-empty i { font-size:40px; display:block; margin-bottom:10px; }
+  .cc-count-badge { background:#E1F5EE; color:#085041; font-size:12px; font-weight:600; padding:3px 10px; border-radius:20px; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="cc-page-header">
+  <h1><i class="ti ti-calendar"></i> Rendez-vous</h1>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <a href="{% url 'appointment-calendar' %}" class="btn-cal">
+      <i class="ti ti-calendar-month"></i> Calendrier
+    </a>
+    {# Création : @role_required("admin","doctor") #}
+    {% if request.user.role == 'admin' or request.user.role == 'doctor' %}
+      <a href="{% url 'appointment-create' %}" class="btn-primary-sm">
+        <i class="ti ti-calendar-plus"></i> Nouveau rendez-vous
+      </a>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Filtres — GET params supportés par la vue : date, status, patient, doctor -->
+<form method="GET" class="cc-filters">
+  <div class="cc-filter-field" style="max-width:180px;">
+    <label>Date</label>
+    <input type="date" name="date" value="{{ request.GET.date }}">
+  </div>
+  <div class="cc-filter-field" style="max-width:170px;">
+    <label>Statut</label>
+    <select name="status">
+      <option value="">Tous les statuts</option>
+      <option value="planifie"  {% if request.GET.status == 'planifie'  %}selected{% endif %}>Planifié</option>
+      <option value="effectue"  {% if request.GET.status == 'effectue'  %}selected{% endif %}>Effectué</option>
+      <option value="annule"    {% if request.GET.status == 'annule'    %}selected{% endif %}>Annulé</option>
+    </select>
+  </div>
+  <button type="submit" class="cc-filter-btn"><i class="ti ti-search" style="margin-right:4px;"></i>Filtrer</button>
+  {% if request.GET.date or request.GET.status %}
+    <a href="{% url 'appointment-list' %}" class="cc-filter-reset">Réinitialiser</a>
+  {% endif %}
+</form>
+
+<div class="cc-card">
+  <div class="cc-card-header">
+    <h3 class="cc-card-title"><i class="ti ti-list"></i> Liste des rendez-vous</h3>
+    <span class="cc-count-badge">{{ appointments|length }} rendez-vous</span>
+  </div>
+  <div class="cc-table-wrap">
+    <table class="cc-table">
+      <thead>
+        <tr>
+          <th>Patient</th>
+          <th>Médecin</th>
+          <th>Date</th>
+          <th>Heure</th>
+          <th>Motif</th>
+          <th>Statut</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for a in appointments %}
+        <tr>
+          <td>
+            <a href="{% url 'patient-detail' a.patient.id %}" style="font-weight:600;color:#1C2833;text-decoration:none;">
+              {{ a.patient }}
+            </a>
+          </td>
+          <td>Dr. {{ a.doctor.get_full_name|default:a.doctor.username }}</td>
+          <td>{{ a.date|date:"d/m/Y" }}</td>
+          <td>{{ a.heure|time:"H:i" }}</td>
+          <td style="color:#4A5568;max-width:180px;">{{ a.motif|default:"—"|truncatechars:40 }}</td>
+          <td>
+            {% if a.status == 'planifie' %}
+              <span class="sb sb-planifie"><i class="ti ti-clock"></i> Planifié</span>
+            {% elif a.status == 'effectue' %}
+              <span class="sb sb-effectue"><i class="ti ti-check"></i> Effectué</span>
+            {% else %}
+              <span class="sb sb-annule"><i class="ti ti-x"></i> Annulé</span>
+            {% endif %}
+          </td>
+          <td>
+            <div class="cc-actions">
+              <a href="{% url 'appointment-detail' a.id %}" class="cc-btn btn-view" title="Voir">
+                <i class="ti ti-eye"></i>
+              </a>
+
+              {# Modifier/Supprimer : @role_required("admin","doctor") #}
+              {% if request.user.role == 'admin' or request.user.role == 'doctor' %}
+                <a href="{% url 'appointment-update' a.id %}" class="cc-btn btn-edit" title="Modifier">
+                  <i class="ti ti-edit"></i>
+                </a>
+                <a href="{% url 'appointment-delete' a.id %}" class="cc-btn btn-delete" title="Supprimer">
+                  <i class="ti ti-trash"></i>
+                </a>
+              {% endif %}
+
+              {# Suivi médical : affiché si effectué — lien vers suivi-create (URL existante) #}
+              {% if a.status == 'effectue' %}
+                <a href="{% url 'suivi-list' %}" class="cc-btn btn-suivi" title="Voir les suivis">
+                  <i class="ti ti-stethoscope"></i>
+                </a>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="7">
+            <div class="cc-empty">
+              <i class="ti ti-calendar"></i>
+              Aucun rendez-vous trouvé.
+              {% if request.user.role == 'admin' or request.user.role == 'doctor' %}
+                <br><a href="{% url 'appointment-create' %}" style="color:#0F6E56;font-weight:600;">Créer le premier rendez-vous →</a>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

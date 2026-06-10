@@ -1,0 +1,74 @@
+{% extends 'core/base.html' %}
+{% block title %}Supprimer {{ user_obj.get_full_name|default:user_obj.username }} — ChroniCare{% endblock %}
+{% block page_title %}Supprimer un utilisateur{% endblock %}
+
+{% block extra_css %}
+<style>
+  .cc-confirm-wrap { max-width:480px; margin:0 auto; }
+  .cc-confirm-card { background:#fff; border:1px solid rgba(0,0,0,.07); border-radius:12px; padding:32px 28px; text-align:center; }
+  .cc-confirm-icon { width:72px; height:72px; border-radius:50%; background:#FCEBEB; display:flex; align-items:center; justify-content:center; margin:0 auto 20px; }
+  .cc-confirm-icon i { font-size:34px; color:#C53030; }
+  .cc-confirm-card h2 { font-size:18px; font-weight:700; color:#1C2833; margin:0 0 10px; }
+  .cc-confirm-card p  { font-size:14px; color:#717D7E; margin:0 0 24px; line-height:1.6; }
+
+  .cc-user-info { display:flex; align-items:center; gap:12px; background:#F4F9FC; border:1px solid rgba(0,0,0,.06); border-radius:10px; padding:12px 16px; margin-bottom:24px; text-align:left; }
+  .cc-avatar-sm { width:42px; height:42px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:700; color:#fff; flex-shrink:0; background:linear-gradient(135deg,#C53030,#E53E3E); }
+  .cc-avatar-sm img { width:42px; height:42px; border-radius:50%; object-fit:cover; }
+  .cc-user-info-name { font-size:14px; font-weight:600; color:#1C2833; }
+  .cc-user-info-role { font-size:12px; color:#717D7E; }
+
+  .cc-warn-box { background:#FAEEDA; border:1px solid #F0E0C0; border-radius:9px; padding:12px 16px; margin-bottom:24px; font-size:13px; color:#633806; text-align:left; display:flex; gap:10px; align-items:flex-start; }
+  .cc-warn-box i { font-size:17px; flex-shrink:0; margin-top:1px; }
+
+  .cc-confirm-actions { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+  .btn-danger  { background:#C53030; color:#fff; border:none; padding:10px 22px; border-radius:9px; font-size:13px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:7px; transition:.14s; }
+  .btn-danger:hover { background:#9B2222; }
+  .btn-cancel  { background:#F4F9FC; color:#4A5568; border:1px solid rgba(0,0,0,.08); padding:10px 22px; border-radius:9px; font-size:13px; font-weight:600; text-decoration:none; display:inline-flex; align-items:center; gap:7px; }
+  .btn-cancel:hover { background:#E8EEF2; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="cc-confirm-wrap">
+  <div class="cc-confirm-card">
+
+    <div class="cc-confirm-icon">
+      <i class="ti ti-trash"></i>
+    </div>
+
+    <h2>Confirmer la suppression</h2>
+    <p>Cette action est irréversible. Toutes les données associées à cet utilisateur seront définitivement supprimées.</p>
+
+    <!-- Informations sur l'utilisateur à supprimer — depuis user_obj (backend) -->
+    <div class="cc-user-info">
+      {% if user_obj.photo %}
+        <div class="cc-avatar-sm"><img src="{{ user_obj.photo.url }}" alt="{{ user_obj.username }}"></div>
+      {% else %}
+        <div class="cc-avatar-sm">{{ user_obj.first_name|first|upper }}{{ user_obj.last_name|first|upper }}</div>
+      {% endif %}
+      <div>
+        <div class="cc-user-info-name">{{ user_obj.get_full_name|default:user_obj.username }}</div>
+        <div class="cc-user-info-role">{{ user_obj.get_role_display }} — @{{ user_obj.username }}</div>
+      </div>
+    </div>
+
+    <div class="cc-warn-box">
+      <i class="ti ti-alert-triangle"></i>
+      <div>La suppression d'un compte médecin ou infirmier peut affecter les dossiers patients et les rendez-vous associés.</div>
+    </div>
+
+    <form method="POST">
+      {% csrf_token %}
+      <div class="cc-confirm-actions">
+        <button type="submit" class="btn-danger">
+          <i class="ti ti-trash"></i> Oui, supprimer définitivement
+        </button>
+        <a href="{% url 'user-list' %}" class="btn-cancel">
+          <i class="ti ti-x"></i> Annuler
+        </a>
+      </div>
+    </form>
+
+  </div>
+</div>
+{% endblock %}

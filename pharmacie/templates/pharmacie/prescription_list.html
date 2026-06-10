@@ -1,0 +1,99 @@
+{% extends "core/base.html" %}
+{% block title %}Prescriptions — ChroniCare{% endblock %}
+{% block page_title %}Prescriptions{% endblock %}
+
+{% block extra_css %}
+<style>
+  .cc-card { background:#fff; border:1px solid rgba(0,0,0,.07); border-radius:12px; overflow:hidden; margin-bottom:16px; }
+  .cc-card-header { padding:14px 18px; border-bottom:1px solid rgba(0,0,0,.06); display:flex; align-items:center; justify-content:space-between; }
+  .cc-card-title { font-size:14px; font-weight:600; color:#1C2833; display:flex; align-items:center; gap:8px; margin:0; }
+  .cc-card-title i { font-size:17px; color:#6B46C1; }
+  table.cc-table { width:100%; border-collapse:collapse; font-size:13px; }
+  table.cc-table th { padding:8px 14px; text-align:left; font-size:11px; font-weight:700; color:#A0AEC0; text-transform:uppercase; }
+  table.cc-table td { padding:10px 14px; border-bottom:1px solid rgba(0,0,0,.04); vertical-align:middle; }
+  table.cc-table tbody tr:hover { background:#F9F6FF; }
+  .badge { display:inline-flex; font-size:11px; font-weight:600; padding:3px 9px; border-radius:20px; }
+  .b-attente  { background:#FAEEDA; color:#633806; }
+  .b-active   { background:#E1F5EE; color:#085041; }
+  .b-terminee { background:#E6F1FB; color:#0C447C; }
+  .b-annulee  { background:#FCEBEB; color:#791F1F; }
+  .b-urgent   { background:#FCEBEB; color:#791F1F; }
+  .btn-cc { display:inline-flex; align-items:center; gap:5px; padding:6px 12px; border-radius:8px; font-size:12px; font-weight:600; text-decoration:none; border:none; cursor:pointer; transition:.15s; }
+  .btn-primary   { background:#6B46C1; color:#fff; }
+  .btn-primary:hover   { background:#4A2E7B; color:#fff; }
+  .btn-secondary { background:#fff; border:1px solid rgba(0,0,0,.12); color:#4A5568; }
+  .btn-secondary:hover { background:#F4F9FC; }
+  .btn-danger    { background:#FCEBEB; color:#791F1F; border:1px solid #F5C6CB; }
+  .btn-danger:hover    { background:#F8D7DA; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="cc-card">
+  <div class="cc-card-header">
+    <h3 class="cc-card-title"><i class="ti ti-prescription"></i> Prescriptions</h3>
+    <a href="{% url 'pharmacie-dashboard' %}" class="btn-cc btn-secondary">
+      <i class="ti ti-arrow-left"></i> Retour
+    </a>
+  </div>
+
+  <table class="cc-table">
+    <thead>
+      <tr>
+        <th>Patient</th>
+        <th>Médecin</th>
+        <th>Date</th>
+        <th>Statut</th>
+        <th>Durée</th>
+        <th>Prochain renouvellement</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for prescription in prescriptions %}
+      <tr>
+        <td class="fw-semibold">{{ prescription.patient.nom }} {{ prescription.patient.prenom }}</td>
+        <td>{% if prescription.medecin %}Dr. {{ prescription.medecin.get_full_name|default:prescription.medecin.username }}{% else %}<span style="color:#A0AEC0">—</span>{% endif %}</td>
+        <td>{{ prescription.date|date:"d/m/Y" }}</td>
+        <td>
+          {% if prescription.statut == 'en_attente' %}<span class="badge b-attente">En attente</span>
+          {% elif prescription.statut == 'active' %}<span class="badge b-active">Active</span>
+          {% elif prescription.statut == 'terminee' %}<span class="badge b-terminee">Terminée</span>
+          {% elif prescription.statut == 'annulee' %}<span class="badge b-annulee">Annulée</span>
+          {% endif %}
+          {% if prescription.renouvellement_proche and prescription.statut != 'annulee' %}
+            <span class="badge b-urgent" style="margin-left:4px;">Urgent</span>
+          {% endif %}
+        </td>
+        <td>{{ prescription.get_duree_standard_display }}</td>
+        <td>
+          {{ prescription.date_prochain_renouvellement|date:"d/m/Y"|default:"—" }}
+        </td>
+        <td style="display:flex;gap:6px;flex-wrap:wrap;">
+          <a href="{% url 'prescription-detail' prescription.id %}" class="btn-cc btn-secondary">
+            <i class="ti ti-eye"></i> Voir
+          </a>
+          {% if request.user.role == 'pharmacist' or request.user.role == 'admin' %}
+            {% if prescription.statut != 'annulee' and prescription.statut != 'terminee' %}
+            <a href="{% url 'dispenser' prescription.id %}" class="btn-cc btn-primary">
+              <i class="ti ti-pill"></i> Dispenser
+            </a>
+            {% endif %}
+          {% endif %}
+          {% if request.user.role == 'admin' or request.user.role == 'doctor' %}
+          <form method="POST" action="{% url 'delete-prescription' prescription.id %}" style="display:inline;" onsubmit="return confirm('Supprimer cette prescription ?');">
+            {% csrf_token %}
+            <button type="submit" class="btn-cc btn-danger"><i class="ti ti-trash"></i> Supprimer</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="7" style="text-align:center;color:#A0AEC0;padding:24px;">Aucune prescription disponible</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

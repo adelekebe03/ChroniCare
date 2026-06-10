@@ -1,0 +1,87 @@
+{% extends 'core/base.html' %}
+{% block title %}Supprimer {{ maladie.nom }} — ChroniCare{% endblock %}
+
+{% block extra_css %}
+<style>
+  .cc-confirm-wrap { max-width:500px; margin:0 auto; }
+  .cc-confirm-card { background:#fff; border:1px solid rgba(0,0,0,.07); border-radius:12px; padding:32px 28px; text-align:center; }
+  .cc-confirm-icon { width:72px; height:72px; border-radius:50%; background:#FCEBEB; display:flex; align-items:center; justify-content:center; margin:0 auto 20px; }
+  .cc-confirm-icon i { font-size:34px; color:#C53030; }
+  .cc-confirm-card h2 { font-size:18px; font-weight:700; color:#1C2833; margin:0 0 10px; }
+  .cc-confirm-card p { font-size:14px; color:#717D7E; margin:0 0 22px; line-height:1.6; }
+
+  .cc-maladie-info { display:flex; align-items:center; gap:14px; background:#F4F9FC; border:1px solid rgba(0,0,0,.06); border-radius:10px; padding:14px 16px; margin-bottom:20px; text-align:left; }
+  .mal-icon-sm { width:44px; height:44px; border-radius:10px; background:linear-gradient(135deg,#0F6E56,#1D9E75); color:#fff; display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0; }
+  .cc-maladie-info-name { font-size:14px; font-weight:700; color:#1C2833; }
+  .cc-maladie-info-meta { font-size:12px; color:#717D7E; margin-top:2px; }
+
+  .type-badge { display:inline-flex; padding:2px 8px; border-radius:20px; font-size:11px; font-weight:600; }
+  .type-infectieuse    { background:#FCEBEB; color:#791F1F; }
+  .type-metabolique    { background:#FAEEDA; color:#633806; }
+  .type-respiratoire   { background:#E6F1FB; color:#0C447C; }
+  .type-cardiovasculaire { background:#FDECEA; color:#7B1F1F; }
+  .type-neurologique   { background:#EDE9FE; color:#4C1D95; }
+  .type-auto-immune    { background:#FED7AA; color:#7C2D12; }
+  .type-renale         { background:#CFFAFE; color:#0E7490; }
+  .type-autre          { background:#F1F5F9; color:#475569; }
+
+  .cc-warn-box { background:#FAEEDA; border:1px solid #F0E0C0; border-radius:9px; padding:12px 16px; margin-bottom:22px; font-size:13px; color:#633806; text-align:left; display:flex; gap:10px; align-items:flex-start; }
+  .cc-warn-box i { font-size:17px; flex-shrink:0; margin-top:1px; }
+
+  .cc-confirm-actions { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+  .btn-danger  { background:#C53030; color:#fff; border:none; padding:10px 22px; border-radius:9px; font-size:13px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:7px; transition:.14s; }
+  .btn-danger:hover { background:#9B2222; }
+  .btn-cancel  { background:#F4F9FC; color:#4A5568; border:1px solid rgba(0,0,0,.08); padding:10px 22px; border-radius:9px; font-size:13px; font-weight:600; text-decoration:none; display:inline-flex; align-items:center; gap:7px; }
+  .btn-cancel:hover { background:#E8EEF2; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="cc-confirm-wrap">
+  <div class="cc-confirm-card">
+    <div class="cc-confirm-icon">
+      <i class="ti ti-trash"></i>
+    </div>
+
+    <h2>Confirmer la suppression</h2>
+    <p>Cette action est irréversible. La maladie sera définitivement supprimée du catalogue.</p>
+
+    <div class="cc-maladie-info">
+      <div class="mal-icon-sm"><i class="ti ti-virus"></i></div>
+      <div>
+        <div class="cc-maladie-info-name">{{ maladie.nom }}</div>
+        <div class="cc-maladie-info-meta">
+          <span class="type-badge type-{{ maladie.type|slugify }}">{{ maladie.get_type_display }}</span>
+        </div>
+        {% if maladie.description %}
+          <div class="cc-maladie-info-meta" style="margin-top:4px;">{{ maladie.description|truncatechars:80 }}</div>
+        {% endif %}
+      </div>
+    </div>
+
+    {% with count=maladie.patients.count %}
+    {% if count > 0 %}
+    <div class="cc-warn-box">
+      <i class="ti ti-alert-triangle"></i>
+      <div>
+        <strong>Attention :</strong> {{ count }} patient{{ count|pluralize }} est associé{{ count|pluralize }} à cette maladie.
+        La suppression retirera également tous les dossiers de suivi liés.
+      </div>
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <form method="POST">
+      {% csrf_token %}
+      <div class="cc-confirm-actions">
+        <button type="submit" class="btn-danger">
+          <i class="ti ti-trash"></i> Oui, supprimer définitivement
+        </button>
+        <a href="{% url 'maladie-list' %}" class="btn-cancel">
+          <i class="ti ti-x"></i> Annuler
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

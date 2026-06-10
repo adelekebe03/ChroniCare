@@ -1,0 +1,260 @@
+{% extends 'core/base.html' %}
+{% block title %}Créer un compte soignant — ChroniCare{% endblock %}
+{% block page_title %}Créer un compte soignant{% endblock %}
+
+{% block extra_css %}
+<style>
+  .cc-form-wrap { max-width:700px; }
+
+  .cc-form-card { background:#fff; border:1px solid rgba(0,0,0,.07); border-radius:14px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,.04); }
+  .cc-form-header { padding:20px 26px; border-bottom:1px solid rgba(0,0,0,.06); display:flex; align-items:center; gap:12px; }
+  .cc-form-header .hdr-icon { width:42px; height:42px; border-radius:11px; background:#E1F5EE; display:flex; align-items:center; justify-content:center; }
+  .cc-form-header .hdr-icon i { font-size:22px; color:#085041; }
+  .cc-form-header h2 { font-size:16px; font-weight:700; color:#1C2833; margin:0; }
+  .cc-form-header p  { font-size:12px; color:#717D7E; margin:0; }
+  .cc-form-body { padding:26px; }
+
+  /* Grille */
+  .cc-grid   { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+  .cc-full   { grid-column:1/-1; }
+  @media(max-width:576px){ .cc-grid{ grid-template-columns:1fr; } }
+
+  /* Séparateur de section */
+  .cc-sep { grid-column:1/-1; display:flex; align-items:center; gap:10px; margin:6px 0 2px; }
+  .cc-sep span { font-size:11px; font-weight:700; color:#A0AEC0; text-transform:uppercase; letter-spacing:.06em; white-space:nowrap; }
+  .cc-sep::before, .cc-sep::after { content:""; flex:1; height:1px; background:rgba(0,0,0,.06); }
+  .cc-sep::before { display:none; }
+  .cc-sep::after  { display:block; }
+
+  /* Champs */
+  .cc-field { display:flex; flex-direction:column; gap:5px; }
+  .cc-field label { font-size:12px; font-weight:600; color:#4A5568; display:flex; align-items:center; gap:3px; }
+  .cc-field label .req { color:#C53030; }
+  .cc-field input,
+  .cc-field select { width:100%; padding:9px 12px; border:1px solid #E2E8F0; border-radius:8px; font-size:13px; background:#FAFBFC; color:#1C2833; outline:none; transition:border-color .15s, box-shadow .15s; box-sizing:border-box; }
+  .cc-field input:focus,
+  .cc-field select:focus { border-color:#0F6E56; box-shadow:0 0 0 3px rgba(15,110,86,.12); background:#fff; }
+  .cc-field .hint { font-size:11px; color:#A0AEC0; margin-top:2px; }
+  .cc-field .err  { font-size:11px; color:#C53030; margin-top:2px; }
+  .cc-field select option[value=""] { color:#A0AEC0; }
+
+  /* Champ mot de passe avec toggle */
+  .pw-wrap { position:relative; }
+  .pw-wrap input { padding-right:40px; }
+  .pw-toggle { position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; color:#A0AEC0; padding:2px; line-height:1; }
+  .pw-toggle:hover { color:#0F6E56; }
+
+  /* Zone erreurs globales */
+  .cc-form-errors { background:#FEF2F2; border:1px solid #FECACA; border-radius:9px; padding:13px 16px; margin-bottom:22px; font-size:13px; color:#991B1B; }
+  .cc-form-errors strong { display:flex; align-items:center; gap:6px; margin-bottom:6px; }
+  .cc-form-errors ul { margin:0; padding-left:18px; }
+  .cc-form-errors li { margin-bottom:3px; }
+
+  /* Rôle — badge couleur dynamique */
+  .role-preview { display:inline-flex; align-items:center; gap:6px; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:700; margin-top:5px; }
+  .rp-admin      { background:#FCEBEB; color:#791F1F; }
+  .rp-doctor     { background:#E1F5EE; color:#085041; }
+  .rp-nurse      { background:#E6F1FB; color:#0C447C; }
+  .rp-pharmacist { background:#EDE7F6; color:#4A2E7B; }
+  .rp-lab        { background:#E0F7FA; color:#075568; }
+
+  /* Boutons */
+  .cc-form-footer { display:flex; align-items:center; gap:10px; padding-top:22px; border-top:1px solid rgba(0,0,0,.06); margin-top:8px; flex-wrap:wrap; }
+  .btn-primary { background:#0F6E56; color:#fff; border:none; padding:10px 24px; border-radius:9px; font-size:13px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:7px; transition:.14s; }
+  .btn-primary:hover { background:#085041; }
+  .btn-secondary { background:#F4F9FC; color:#4A5568; border:1px solid rgba(0,0,0,.08); padding:10px 20px; border-radius:9px; font-size:13px; font-weight:600; text-decoration:none; display:inline-flex; align-items:center; gap:7px; }
+  .btn-secondary:hover { background:#E8EEF2; }
+
+  /* Spécialité masquée par défaut — JS la montre si rôle = médecin */
+  #specialite-row { display:none !important; }
+  #specialite-row.visible { display:flex !important; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="cc-form-wrap">
+  <div class="cc-form-card">
+
+    <div class="cc-form-header">
+      <div class="hdr-icon"><i class="ti ti-user-plus"></i></div>
+      <div>
+        <h2>Créer un compte soignant</h2>
+        <p>Médecin, infirmier, pharmacien, laborantin ou administrateur</p>
+      </div>
+    </div>
+
+    <div class="cc-form-body">
+
+      {# ── Erreurs de validation ───────────────────────────────── #}
+      {% if form.errors %}
+        <div class="cc-form-errors">
+          <strong><i class="ti ti-alert-circle"></i> Veuillez corriger les erreurs suivantes :</strong>
+          <ul>
+            {% for field in form %}
+              {% for error in field.errors %}
+                <li><strong>{{ field.label }} :</strong> {{ error }}</li>
+              {% endfor %}
+            {% endfor %}
+            {% for error in form.non_field_errors %}
+              <li>{{ error }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+
+      <form method="POST" enctype="multipart/form-data" novalidate>
+        {% csrf_token %}
+        <div class="cc-grid">
+
+          {# ── Identité ─────────────────────────────────────────── #}
+          <div class="cc-sep cc-full"><span>Identité</span></div>
+
+          <div class="cc-field">
+            <label for="{{ form.first_name.id_for_label }}">Prénom</label>
+            {{ form.first_name }}
+          </div>
+
+          <div class="cc-field">
+            <label for="{{ form.last_name.id_for_label }}">Nom de famille</label>
+            {{ form.last_name }}
+          </div>
+
+          <div class="cc-field">
+            <label for="{{ form.email.id_for_label }}">Adresse e-mail</label>
+            {{ form.email }}
+            {% if form.email.errors %}<span class="err">{{ form.email.errors|join:" " }}</span>{% endif %}
+          </div>
+
+          <div class="cc-field">
+            <label for="{{ form.contact.id_for_label }}">Téléphone</label>
+            {{ form.contact }}
+          </div>
+
+          {# ── Rôle & spécialité ────────────────────────────────── #}
+          <div class="cc-sep cc-full"><span>Rôle & accès</span></div>
+
+          <div class="cc-field">
+            <label for="{{ form.role.id_for_label }}">Rôle <span class="req">*</span></label>
+            {{ form.role }}
+            <div id="role-badge"></div>
+            {% if form.role.errors %}<span class="err">{{ form.role.errors|join:" " }}</span>{% endif %}
+          </div>
+
+          <div class="cc-field" id="specialite-row">
+            <label for="{{ form.specialite.id_for_label }}">Spécialité <span class="req">*</span></label>
+            {{ form.specialite }}
+            <span class="hint">Ex: Cardiologie, Diabétologie, Médecine interne…</span>
+            {% if form.specialite.errors %}<span class="err">{{ form.specialite.errors|join:" " }}</span>{% endif %}
+          </div>
+
+          {# ── Compte ───────────────────────────────────────────── #}
+          <div class="cc-sep cc-full"><span>Identifiant de connexion</span></div>
+
+          <div class="cc-field cc-full">
+            <label for="{{ form.username.id_for_label }}">Identifiant <span class="req">*</span></label>
+            {{ form.username }}
+            <span class="hint">Lettres, chiffres, @/./+/-/_ uniquement. Ce sera son nom de connexion.</span>
+            {% if form.username.errors %}<span class="err">{{ form.username.errors|join:" " }}</span>{% endif %}
+          </div>
+
+          <div class="cc-field">
+            <label for="{{ form.password.id_for_label }}">Mot de passe <span class="req">*</span></label>
+            <div class="pw-wrap">
+              {{ form.password }}
+              <button type="button" class="pw-toggle" aria-label="Voir le mot de passe" onclick="togglePw(this)">
+                <i class="ti ti-eye"></i>
+              </button>
+            </div>
+            <span class="hint">Minimum 6 caractères</span>
+            {% if form.password.errors %}<span class="err">{{ form.password.errors|join:" " }}</span>{% endif %}
+          </div>
+
+          <div class="cc-field">
+            <label for="{{ form.confirm_password.id_for_label }}">Confirmer le mot de passe <span class="req">*</span></label>
+            <div class="pw-wrap">
+              {{ form.confirm_password }}
+              <button type="button" class="pw-toggle" aria-label="Voir la confirmation" onclick="togglePw(this)">
+                <i class="ti ti-eye"></i>
+              </button>
+            </div>
+            {% if form.confirm_password.errors %}<span class="err">{{ form.confirm_password.errors|join:" " }}</span>{% endif %}
+          </div>
+
+          {# ── Photo (optionnelle) ───────────────────────────────── #}
+          <div class="cc-sep cc-full"><span>Photo (optionnel)</span></div>
+
+          <div class="cc-field cc-full">
+            <label for="{{ form.photo.id_for_label }}">Photo de profil</label>
+            {{ form.photo }}
+            <span class="hint">Formats acceptés : JPG, PNG. Recommandé : 200×200 px.</span>
+          </div>
+
+        </div>{# fin .cc-grid #}
+
+        <div class="cc-form-footer">
+          <button type="submit" class="btn-primary">
+            <i class="ti ti-user-check"></i> Créer le compte
+          </button>
+          <a href="{% url 'user-list' %}" class="btn-secondary">
+            <i class="ti ti-arrow-left"></i> Annuler
+          </a>
+        </div>
+
+      </form>
+    </div>{# fin .cc-form-body #}
+  </div>{# fin .cc-form-card #}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const ROLE_META = {
+  admin:      { label: 'Administrateur', cls: 'rp-admin',      icon: 'ti-shield-lock' },
+  doctor:     { label: 'Médecin',        cls: 'rp-doctor',     icon: 'ti-stethoscope' },
+  nurse:      { label: 'Infirmier(e)',   cls: 'rp-nurse',      icon: 'ti-nurse' },
+  pharmacist: { label: 'Pharmacien',     cls: 'rp-pharmacist', icon: 'ti-pill' },
+  lab:        { label: 'Laboratoire',    cls: 'rp-lab',        icon: 'ti-flask' },
+};
+
+const roleSelect     = document.getElementById('{{ form.role.id_for_label }}');
+const specialiteRow  = document.getElementById('specialite-row');
+const roleBadge      = document.getElementById('role-badge');
+
+function onRoleChange() {
+  const val  = roleSelect ? roleSelect.value : '';
+  const meta = ROLE_META[val];
+
+  /* Spécialité : visible seulement pour les médecins */
+  if (specialiteRow) {
+    if (val === 'doctor') {
+      specialiteRow.classList.add('visible');
+    } else {
+      specialiteRow.classList.remove('visible');
+    }
+  }
+
+  /* Badge couleur sous le select */
+  if (roleBadge) {
+    if (meta) {
+      roleBadge.innerHTML =
+        `<span class="role-preview ${meta.cls}">` +
+        `<i class="ti ${meta.icon}"></i> ${meta.label}</span>`;
+    } else {
+      roleBadge.innerHTML = '';
+    }
+  }
+}
+
+if (roleSelect) {
+  roleSelect.addEventListener('change', onRoleChange);
+  onRoleChange(); /* initialiser au chargement (y compris sur erreur de re-soumission) */
+}
+
+function togglePw(btn) {
+  const input  = btn.previousElementSibling;
+  const isText = input.type === 'text';
+  input.type = isText ? 'password' : 'text';
+  btn.querySelector('i').className = isText ? 'ti ti-eye' : 'ti ti-eye-off';
+}
+</script>
+{% endblock %}

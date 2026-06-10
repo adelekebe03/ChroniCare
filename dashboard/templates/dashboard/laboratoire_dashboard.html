@@ -1,0 +1,144 @@
+{% extends 'core/base.html' %}
+{% block title %}Espace Laboratoire — ChroniCare{% endblock %}
+{% block page_title %}Tableau de bord Laboratoire{% endblock %}
+
+{% block extra_css %}
+<style>
+  .role-banner { background: linear-gradient(135deg, #075568, #0E7490); color:#fff; padding:22px 26px; border-radius:14px; margin-bottom:22px; display:flex; align-items:center; gap:18px; }
+  .role-banner .icon { width:56px; height:56px; border-radius:14px; background:rgba(255,255,255,.18); display:flex; align-items:center; justify-content:center; }
+  .role-banner .icon i { font-size:30px; color:#A5F3FC; }
+  .role-banner h1 { font-size:22px; font-weight:700; margin:0 0 4px; }
+  .role-banner p  { font-size:13px; margin:0; color:rgba(255,255,255,.85); }
+
+  .stat-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:14px; margin-bottom:22px; }
+  .stat-card { background:#fff; border:1px solid rgba(0,0,0,.07); border-radius:12px; padding:16px; }
+  .stat-card .top { display:flex; align-items:center; justify-content:space-between; }
+  .stat-card .ico { width:36px; height:36px; border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:19px; }
+  .stat-card .val { font-size:26px; font-weight:700; margin-top:8px; color:#1C2833; }
+  .stat-card .lbl { font-size:12px; color:#717D7E; }
+  .ico-cyan  { background:#E0F7FA; color:#075568; }
+  .ico-amber { background:#FAEEDA; color:#633806; }
+  .ico-red   { background:#FCEBEB; color:#791F1F; }
+  .ico-teal  { background:#E1F5EE; color:#085041; }
+
+  .quick-actions { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; margin-bottom:22px; }
+  .qa { background:#fff; border:1px solid rgba(0,0,0,.07); border-radius:10px; padding:14px; text-align:center; text-decoration:none; color:#1C2833; transition:.15s; }
+  .qa:hover { border-color:#0E7490; transform:translateY(-1px); color:#075568; }
+  .qa i { font-size:22px; color:#0E7490; display:block; margin-bottom:6px; }
+
+  table.cc-table { width:100%; border-collapse:collapse; font-size:13px; }
+  table.cc-table th { padding:8px 12px; text-align:left; font-size:11px; font-weight:700; color:#A0AEC0; text-transform:uppercase; }
+  table.cc-table td { padding:10px 12px; border-bottom:1px solid rgba(0,0,0,.04); }
+  table.cc-table tbody tr:hover { background:#F4F9FC; }
+
+  .badge { display:inline-flex; font-size:11px; font-weight:600; padding:3px 9px; border-radius:20px; }
+  .b-attente  { background:#E6F1FB; color:#0C447C; }
+  .b-normal   { background:#E1F5EE; color:#085041; }
+  .b-anormal  { background:#FAEEDA; color:#633806; }
+  .b-critique { background:#FCEBEB; color:#791F1F; }
+
+  .cc-acc { border:1px solid rgba(0,0,0,.07); border-radius:12px; overflow:hidden; margin-bottom:12px; }
+  .cc-acc-btn { width:100%; display:flex; align-items:center; gap:10px; padding:14px 18px; background:#fff; border:none; cursor:pointer; font-size:14px; font-weight:600; color:#1C2833; text-align:left; transition:background .15s; }
+  .cc-acc-btn:hover, .cc-acc-btn.open { background:#F9FAFB; }
+  .cc-acc-btn .acc-left { display:flex; align-items:center; gap:8px; flex:1; }
+  .cc-acc-btn .acc-left i { font-size:17px; color:#0E7490; }
+  .cc-acc-btn .acc-count { font-size:11px; font-weight:700; padding:2px 8px; border-radius:20px; background:#E0F7FA; color:#075568; }
+  .cc-acc-btn .acc-chevron { font-size:16px; color:#A0AEC0; transition:transform .2s; flex-shrink:0; }
+  .cc-acc-btn .acc-link { font-size:12px; font-weight:500; text-decoration:none; color:#0E7490; flex-shrink:0; }
+  .cc-acc-btn.open .acc-chevron { transform:rotate(180deg); }
+  .cc-acc-body { display:none; border-top:1px solid rgba(0,0,0,.06); }
+  .cc-acc-body.open { display:block; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="role-banner">
+  <div class="icon"><i class="ti ti-flask"></i></div>
+  <div>
+    <h1>Espace Laboratoire</h1>
+    <p>Bonjour {{ request.user.get_full_name|default:request.user.username }} — Saisissez et validez les résultats d'analyses.</p>
+  </div>
+</div>
+
+<div class="quick-actions">
+  <a href="{% url 'labtest-list' %}" class="qa"><i class="ti ti-list"></i> Toutes les analyses</a>
+  <a href="{% url 'labtest-list' %}" class="qa"><i class="ti ti-flask-2"></i> Toutes les analyses</a>
+</div>
+
+<div class="stat-grid">
+  <div class="stat-card">
+    <div class="top"><span class="lbl">En attente</span><div class="ico ico-amber"><i class="ti ti-clock"></i></div></div>
+    <div class="val">{{ analyses_en_attente }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="top"><span class="lbl">À valider</span><div class="ico ico-cyan"><i class="ti ti-check"></i></div></div>
+    <div class="val">{{ analyses_a_valider }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="top"><span class="lbl">Anomalies</span><div class="ico ico-red"><i class="ti ti-alert-circle"></i></div></div>
+    <div class="val">{{ anomalies_count }}</div>
+  </div>
+</div>
+
+{# ── Analyses récentes (accordéon) ───────────────────────────── #}
+<div class="cc-acc">
+  <button class="cc-acc-btn" onclick="accToggle(this)">
+    <span class="acc-left"><i class="ti ti-flask"></i> Analyses récentes <span class="acc-count">{{ analyses_recentes|length }}</span></span>
+    <a href="{% url 'labtest-list' %}" class="acc-link" onclick="event.stopPropagation()">Voir toutes →</a>
+    <i class="ti ti-chevron-down acc-chevron"></i>
+  </button>
+  <div class="cc-acc-body">
+    <table class="cc-table">
+      <thead><tr><th>Patient</th><th>Type d'analyse</th><th>Date</th><th>Statut</th><th>Validé</th><th></th></tr></thead>
+      <tbody>
+        {% for t in analyses_recentes %}
+          <tr>
+            <td>{{ t.patient }}</td>
+            <td>{{ t.type_test }}</td>
+            <td>{{ t.date_test|date:"d/m/Y H:i" }}</td>
+            <td>
+              {% if t.status == 'en_attente' %}
+                <span class="badge b-attente">En attente</span>
+              {% elif t.status == 'normal' %}
+                <span class="badge b-normal">Normal</span>
+              {% elif t.status == 'anormal' %}
+                <span class="badge b-anormal">Anormal</span>
+              {% elif t.status == 'critique' %}
+                <span class="badge b-critique">Critique</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if t.is_validated %}
+                <span class="badge b-normal">Oui</span>
+              {% else %}
+                <span class="badge b-attente">Non</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if not t.is_validated %}
+                <a href="{% url 'labtest-result' t.pk %}" style="color:#0E7490;font-weight:500;text-decoration:none;font-size:12px;margin-right:8px;">Saisir →</a>
+                <a href="{% url 'labtest-validate' t.pk %}" style="color:#085041;font-weight:500;text-decoration:none;font-size:12px;">Valider</a>
+              {% else %}
+                <a href="{% url 'labtest-detail' t.pk %}" style="color:#0E7490;font-weight:500;text-decoration:none;font-size:12px;">Détails →</a>
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="6" style="text-align:center;color:#A0AEC0;padding:20px;">Aucune analyse enregistrée</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function accToggle(btn) {
+  const body = btn.nextElementSibling;
+  const isOpen = btn.classList.contains('open');
+  btn.classList.toggle('open', !isOpen);
+  body.classList.toggle('open', !isOpen);
+}
+</script>
+{% endblock %}

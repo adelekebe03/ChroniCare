@@ -1,0 +1,194 @@
+{% extends "core/base.html" %}
+{% block title %}{% if form.instance.pk %}Modifier{% else %}Nouveau{% endif %} patient — ChroniCare{% endblock %}
+
+{% block extra_css %}
+<style>
+  .cc-form-wrap { max-width:860px; }
+
+  .cc-form-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; flex-wrap:wrap; gap:10px; }
+  .cc-form-header h1 { font-size:20px; font-weight:700; color:#1C2833; margin:0; display:flex; align-items:center; gap:8px; }
+  .cc-form-header h1 i { color:#0F6E56; }
+
+  .cc-section { background:#fff; border:1px solid rgba(0,0,0,.07); border-radius:12px; overflow:hidden; margin-bottom:16px; }
+  .cc-section-header { padding:14px 20px; border-bottom:1px solid rgba(0,0,0,.06); display:flex; align-items:center; gap:8px; }
+  .cc-section-header h3 { font-size:14px; font-weight:600; color:#1C2833; margin:0; }
+  .cc-section-header i  { font-size:17px; color:#0F6E56; }
+  .cc-section-body { padding:20px; }
+
+  .cc-form-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  @media(max-width:576px){ .cc-form-grid{ grid-template-columns:1fr; } }
+  .cc-field-full { grid-column:1/-1; }
+
+  .cc-field { display:flex; flex-direction:column; gap:5px; }
+  .cc-field label { font-size:12px; font-weight:600; color:#4A5568; }
+  .cc-field input, .cc-field select, .cc-field textarea {
+    width:100%; padding:9px 12px; border:1px solid #E2E8F0; border-radius:8px;
+    font-size:13px; background:#FAFBFC; color:#1C2833; outline:none;
+    transition:border-color .15s, box-shadow .15s; resize:vertical;
+  }
+  .cc-field input:focus, .cc-field select:focus, .cc-field textarea:focus {
+    border-color:#0F6E56; box-shadow:0 0 0 3px rgba(15,110,86,.1); background:#fff;
+  }
+  .cc-field-error { font-size:11px; color:#C53030; }
+
+  .cc-form-errors { background:#FCEBEB; border:1px solid #F0D5D5; border-radius:9px; padding:12px 16px; margin-bottom:16px; font-size:13px; color:#791F1F; }
+  .cc-form-errors ul { margin:6px 0 0 16px; padding:0; }
+
+  .cc-form-footer { display:flex; gap:10px; flex-wrap:wrap; }
+  .btn-submit { background:#0F6E56; color:#fff; border:none; padding:10px 22px; border-radius:9px; font-size:13px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:7px; transition:.14s; }
+  .btn-submit:hover { background:#085041; }
+  .btn-back   { background:#F4F9FC; color:#4A5568; border:1px solid rgba(0,0,0,.08); padding:10px 22px; border-radius:9px; font-size:13px; font-weight:600; text-decoration:none; display:inline-flex; align-items:center; gap:7px; }
+  .btn-back:hover { background:#E8EEF2; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="cc-form-wrap">
+
+  <div class="cc-form-header">
+    <h1>
+      <i class="ti ti-{% if form.instance.pk %}edit{% else %}user-plus{% endif %}"></i>
+      {% if form.instance.pk %}Modifier : {{ form.instance.nom }} {{ form.instance.prenom }}
+      {% else %}Enregistrer un nouveau patient{% endif %}
+    </h1>
+  </div>
+
+  {% if form.errors %}
+    <div class="cc-form-errors">
+      <strong>Erreurs à corriger :</strong>
+      <ul>
+        {% for field in form %}{% for e in field.errors %}<li><strong>{{ field.label }} :</strong> {{ e }}</li>{% endfor %}{% endfor %}
+        {% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  <form method="POST" novalidate>
+    {% csrf_token %}
+
+    <!-- Compte utilisateur -->
+    <div class="cc-section">
+      <div class="cc-section-header">
+        <i class="ti ti-link"></i><h3>Liaison compte utilisateur</h3>
+      </div>
+      <div class="cc-section-body">
+        <div class="cc-field">
+          <label for="{{ form.compte_patient.id_for_label }}">Compte patient (optionnel)</label>
+          {{ form.compte_patient }}
+          <span style="font-size:11px;color:#A0AEC0;">Lier à un compte utilisateur existant avec le rôle « Patient ».</span>
+          {% if form.compte_patient.errors %}<span class="cc-field-error">{{ form.compte_patient.errors|join:" " }}</span>{% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Identité -->
+    <div class="cc-section">
+      <div class="cc-section-header">
+        <i class="ti ti-id-badge"></i><h3>Identité</h3>
+      </div>
+      <div class="cc-section-body">
+        <div class="cc-form-grid">
+          <div class="cc-field">
+            <label for="{{ form.nom.id_for_label }}">Nom <span style="color:#C53030;">*</span></label>
+            {{ form.nom }}
+            {% if form.nom.errors %}<span class="cc-field-error">{{ form.nom.errors|join:" " }}</span>{% endif %}
+          </div>
+          <div class="cc-field">
+            <label for="{{ form.prenom.id_for_label }}">Prénom <span style="color:#C53030;">*</span></label>
+            {{ form.prenom }}
+            {% if form.prenom.errors %}<span class="cc-field-error">{{ form.prenom.errors|join:" " }}</span>{% endif %}
+          </div>
+          <div class="cc-field">
+            <label for="{{ form.date_naissance.id_for_label }}">Date de naissance</label>
+            {{ form.date_naissance }}
+          </div>
+          <div class="cc-field">
+            <label for="{{ form.sexe.id_for_label }}">Sexe <span style="color:#C53030;">*</span></label>
+            {{ form.sexe }}
+            {% if form.sexe.errors %}<span class="cc-field-error">{{ form.sexe.errors|join:" " }}</span>{% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Contact -->
+    <div class="cc-section">
+      <div class="cc-section-header">
+        <i class="ti ti-phone"></i><h3>Contact</h3>
+      </div>
+      <div class="cc-section-body">
+        <div class="cc-form-grid">
+          <div class="cc-field">
+            <label for="{{ form.telephone.id_for_label }}">Téléphone <span style="color:#C53030;">*</span></label>
+            {{ form.telephone }}
+            {% if form.telephone.errors %}<span class="cc-field-error">{{ form.telephone.errors|join:" " }}</span>{% endif %}
+          </div>
+          <div class="cc-field">
+            <label for="{{ form.contact_urgence.id_for_label }}">Contact d'urgence <span style="color:#C53030;">*</span></label>
+            {{ form.contact_urgence }}
+            {% if form.contact_urgence.errors %}<span class="cc-field-error">{{ form.contact_urgence.errors|join:" " }}</span>{% endif %}
+          </div>
+          <div class="cc-field cc-field-full">
+            <label for="{{ form.adresse.id_for_label }}">Adresse</label>
+            {{ form.adresse }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Informations médicales -->
+    <div class="cc-section">
+      <div class="cc-section-header">
+        <i class="ti ti-heart-rate-monitor"></i><h3>Informations médicales</h3>
+      </div>
+      <div class="cc-section-body">
+        <div class="cc-form-grid">
+          <div class="cc-field">
+            <label for="{{ form.groupe_sanguin.id_for_label }}">Groupe sanguin <span style="color:#C53030;">*</span></label>
+            {{ form.groupe_sanguin }}
+            {% if form.groupe_sanguin.errors %}<span class="cc-field-error">{{ form.groupe_sanguin.errors|join:" " }}</span>{% endif %}
+          </div>
+          <div class="cc-field">
+            <label for="{{ form.medecin_traitant.id_for_label }}">Médecin traitant</label>
+            {{ form.medecin_traitant }}
+            {% if form.medecin_traitant.errors %}<span class="cc-field-error">{{ form.medecin_traitant.errors|join:" " }}</span>{% endif %}
+          </div>
+          <div class="cc-field cc-field-full">
+            <label for="{{ form.assurance.id_for_label }}">Assurance maladie</label>
+            {{ form.assurance }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Antécédents -->
+    <div class="cc-section">
+      <div class="cc-section-header">
+        <i class="ti ti-notes"></i><h3>Antécédents médicaux</h3>
+      </div>
+      <div class="cc-section-body">
+        <div class="cc-form-grid">
+          <div class="cc-field">
+            <label for="{{ form.antecedents_personnels.id_for_label }}">Antécédents personnels</label>
+            {{ form.antecedents_personnels }}
+          </div>
+          <div class="cc-field">
+            <label for="{{ form.antecedents_familiaux.id_for_label }}">Antécédents familiaux</label>
+            {{ form.antecedents_familiaux }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="cc-form-footer">
+      <button type="submit" class="btn-submit">
+        <i class="ti ti-device-floppy"></i>
+        {% if form.instance.pk %}Enregistrer les modifications{% else %}Créer le patient{% endif %}
+      </button>
+      <a href="{% url 'patient-list' %}" class="btn-back">
+        <i class="ti ti-arrow-left"></i> Annuler
+      </a>
+    </div>
+  </form>
+</div>
+{% endblock %}

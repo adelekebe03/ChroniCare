@@ -1,0 +1,164 @@
+{% extends 'core/base.html' %}
+{% block title %}Maladies chroniques — ChroniCare{% endblock %}
+
+{% block extra_css %}
+<style>
+  .cc-page-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:22px; flex-wrap:wrap; gap:12px; }
+  .cc-page-header h1 { font-size:20px; font-weight:700; color:#1C2833; margin:0; display:flex; align-items:center; gap:8px; }
+  .cc-page-header h1 i { color:#0F6E56; }
+
+  .cc-filters { background:#fff; border:1px solid rgba(0,0,0,.07); border-radius:12px; padding:16px 20px; margin-bottom:18px; display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; }
+  .cc-filter-field { display:flex; flex-direction:column; gap:4px; min-width:160px; flex:1; }
+  .cc-filter-field label { font-size:11px; font-weight:600; color:#717D7E; text-transform:uppercase; }
+  .cc-filter-field input, .cc-filter-field select { padding:8px 12px; border:1px solid #E2E8F0; border-radius:8px; font-size:13px; outline:none; background:#FAFBFC; }
+  .cc-filter-field input:focus, .cc-filter-field select:focus { border-color:#0F6E56; box-shadow:0 0 0 3px rgba(15,110,86,.1); }
+  .cc-filter-btn { padding:8px 18px; background:#0F6E56; color:#fff; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; }
+  .cc-filter-btn:hover { background:#085041; }
+  .cc-filter-reset { padding:8px 14px; background:#F4F9FC; color:#4A5568; border:1px solid rgba(0,0,0,.08); border-radius:8px; font-size:13px; text-decoration:none; }
+
+  .cc-card { background:#fff; border:1px solid rgba(0,0,0,.07); border-radius:12px; overflow:hidden; }
+  .cc-card-header { display:flex; align-items:center; justify-content:space-between; padding:14px 20px; border-bottom:1px solid rgba(0,0,0,.06); }
+  .cc-card-title { font-size:14px; font-weight:600; color:#1C2833; display:flex; align-items:center; gap:8px; margin:0; }
+  .cc-card-title i { color:#0F6E56; font-size:17px; }
+  .cc-table-wrap { overflow-x:auto; }
+  table.cc-table { width:100%; border-collapse:collapse; font-size:13px; }
+  table.cc-table th { padding:10px 16px; text-align:left; font-size:11px; font-weight:700; color:#A0AEC0; text-transform:uppercase; letter-spacing:.04em; border-bottom:1px solid rgba(0,0,0,.06); }
+  table.cc-table td { padding:12px 16px; border-bottom:1px solid rgba(0,0,0,.04); vertical-align:middle; }
+  table.cc-table tbody tr:hover { background:#F7FAFB; }
+  table.cc-table tbody tr:last-child td { border-bottom:none; }
+
+  .cc-count-badge { background:#E1F5EE; color:#085041; font-size:12px; font-weight:600; padding:3px 10px; border-radius:20px; }
+
+  /* Badge type de maladie */
+  .type-badge { display:inline-flex; align-items:center; gap:5px; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600; white-space:nowrap; }
+  .type-infectieuse    { background:#FCEBEB; color:#791F1F; }
+  .type-metabolique    { background:#FAEEDA; color:#633806; }
+  .type-respiratoire   { background:#E6F1FB; color:#0C447C; }
+  .type-cardiovasculaire { background:#FDECEA; color:#7B1F1F; }
+  .type-neurologique   { background:#EDE9FE; color:#4C1D95; }
+  .type-auto-immune    { background:#FED7AA; color:#7C2D12; }
+  .type-renale         { background:#CFFAFE; color:#0E7490; }
+  .type-autre          { background:#F1F5F9; color:#475569; }
+
+  .pm-count { display:inline-flex; align-items:center; gap:4px; font-size:12px; color:#717D7E; }
+  .pm-dot { width:7px; height:7px; border-radius:50%; background:#E53E3E; flex-shrink:0; }
+
+  .cc-actions { display:flex; gap:5px; align-items:center; }
+  .cc-btn { display:inline-flex; align-items:center; justify-content:center; gap:4px; padding:6px 10px; border-radius:7px; font-size:12px; font-weight:500; text-decoration:none; border:none; cursor:pointer; transition:.14s; white-space:nowrap; }
+  .btn-view   { background:#E1F5EE; color:#085041; } .btn-view:hover   { background:#C5E5D5; }
+  .btn-edit   { background:#FAEEDA; color:#633806; } .btn-edit:hover   { background:#F0E0C0; }
+  .btn-delete { background:#FCEBEB; color:#791F1F; } .btn-delete:hover { background:#F0D5D5; }
+  .btn-primary-sm { background:#0F6E56; color:#fff; padding:8px 16px; border-radius:9px; font-size:13px; font-weight:600; text-decoration:none; display:inline-flex; align-items:center; gap:6px; transition:.14s; }
+  .btn-primary-sm:hover { background:#085041; color:#fff; }
+
+  .cc-empty { text-align:center; padding:40px 20px; color:#A0AEC0; }
+  .cc-empty i { font-size:40px; display:block; margin-bottom:10px; }
+
+  .mal-icon { width:34px; height:34px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; background:#E1F5EE; color:#0F6E56; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="cc-page-header">
+  <h1><i class="ti ti-virus"></i> Maladies chroniques</h1>
+  <a href="{% url 'maladie-create' %}" class="btn-primary-sm">
+    <i class="ti ti-plus"></i> Nouvelle maladie
+  </a>
+</div>
+
+<form method="GET" class="cc-filters">
+  <div class="cc-filter-field">
+    <label>Nom</label>
+    <input type="text" name="nom" value="{{ request.GET.nom }}" placeholder="Rechercher par nom…">
+  </div>
+  <div class="cc-filter-field" style="max-width:220px;">
+    <label>Type</label>
+    <select name="type">
+      <option value="">Tous les types</option>
+      {% for key, label in type_choices %}
+        <option value="{{ key }}" {% if request.GET.type == key %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <button type="submit" class="cc-filter-btn"><i class="ti ti-search" style="margin-right:4px;"></i>Filtrer</button>
+  {% if request.GET.nom or request.GET.type %}
+    <a href="{% url 'maladie-list' %}" class="cc-filter-reset">Réinitialiser</a>
+  {% endif %}
+</form>
+
+<div class="cc-card">
+  <div class="cc-card-header">
+    <h3 class="cc-card-title"><i class="ti ti-list"></i> Liste des maladies</h3>
+    <span class="cc-count-badge">{{ maladies|length }} maladie{{ maladies|length|pluralize }}</span>
+  </div>
+  <div class="cc-table-wrap">
+    <table class="cc-table">
+      <thead>
+        <tr>
+          <th>Maladie</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Patients</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for maladie in maladies %}
+        <tr>
+          <td>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div class="mal-icon"><i class="ti ti-virus"></i></div>
+              <a href="{% url 'maladie-detail' maladie.id %}" style="font-weight:600;color:#1C2833;text-decoration:none;">
+                {{ maladie.nom }}
+              </a>
+            </div>
+          </td>
+          <td>
+            <span class="type-badge type-{{ maladie.type|slugify }}">
+              {{ maladie.get_type_display }}
+            </span>
+          </td>
+          <td style="color:#717D7E;font-size:12px;max-width:280px;">
+            {{ maladie.description|default:"—"|truncatechars:90 }}
+          </td>
+          <td>
+            {% with count=maladie.patients.count %}
+              {% if count > 0 %}
+                <span class="pm-count"><span class="pm-dot"></span>{{ count }} patient{{ count|pluralize }}</span>
+              {% else %}
+                <span style="color:#A0AEC0;font-size:12px;">—</span>
+              {% endif %}
+            {% endwith %}
+          </td>
+          <td>
+            <div class="cc-actions">
+              <a href="{% url 'maladie-detail' maladie.id %}" class="cc-btn btn-view" title="Voir le détail">
+                <i class="ti ti-eye"></i>
+              </a>
+              <a href="{% url 'maladie-update' maladie.id %}" class="cc-btn btn-edit" title="Modifier">
+                <i class="ti ti-edit"></i>
+              </a>
+              <a href="{% url 'maladie-delete' maladie.id %}" class="cc-btn btn-delete" title="Supprimer">
+                <i class="ti ti-trash"></i>
+              </a>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="5">
+            <div class="cc-empty">
+              <i class="ti ti-virus"></i>
+              Aucune maladie enregistrée.
+              <br><a href="{% url 'maladie-create' %}" style="color:#0F6E56;font-weight:600;">Ajouter la première maladie →</a>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,238 @@
+<style>
+  .cc-sidebar {
+    position: fixed;
+    top: var(--cc-nav-h); left: 0;
+    width: var(--cc-sidebar-w);
+    height: calc(100vh - var(--cc-nav-h));
+    background: #fff;
+    border-right: 1px solid var(--cc-border);
+    overflow-y: auto; overflow-x: hidden;
+    z-index: 1030;
+    display: flex; flex-direction: column;
+    scrollbar-width: thin;
+  }
+  .cc-sidebar::-webkit-scrollbar { width: 4px; }
+  .cc-sidebar::-webkit-scrollbar-thumb { background: var(--cc-border); border-radius: 2px; }
+  .cc-sidebar-section {
+    padding: 14px 16px 4px;
+    font-size: 10px; font-weight: 700;
+    letter-spacing: .08em; text-transform: uppercase;
+    color: #B0B8C1;
+  }
+  .cc-nav-link {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 16px; margin: 1px 8px;
+    border-radius: 8px; font-size: 13px; font-weight: 500;
+    color: #4A5568; text-decoration: none;
+    transition: background .14s, color .14s;
+    position: relative;
+  }
+  .cc-nav-link i { font-size: 18px; flex-shrink: 0; color: #A0AEC0; transition: color .14s; }
+  .cc-nav-link:hover { background: #F0FBF6; color: #0F6E56; }
+  .cc-nav-link:hover i { color: #0F6E56; }
+  .cc-nav-link.active { background: #E1F5EE; color: #085041; font-weight: 600; }
+  .cc-nav-link.active i { color: #0F6E56; }
+  .cc-nav-link.active::before {
+    content: ''; position: absolute;
+    left: 0; top: 6px; bottom: 6px;
+    width: 3px; border-radius: 0 3px 3px 0;
+    background: #0F6E56;
+  }
+  .cc-nav-badge {
+    margin-left: auto; font-size: 10px; font-weight: 700;
+    padding: 2px 7px; border-radius: 20px;
+    background: #FCEBEB; color: #791F1F; flex-shrink: 0;
+  }
+  .cc-sidebar-divider { height: 1px; background: rgba(0,0,0,.06); margin: 8px 16px; }
+  .cc-sidebar-footer {
+    margin-top: auto; padding: 12px 16px 16px;
+    border-top: 1px solid rgba(0,0,0,.06);
+  }
+  .cc-sidebar-footer-info {
+    font-size: 11px; color: #A0AEC0;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .cc-status-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: #1D9E75; flex-shrink: 0;
+  }
+</style>
+
+<aside class="cc-sidebar" id="ccSidebar">
+
+  {% if request.user.is_authenticated %}
+
+    {# ── PRINCIPAL (tous les rôles connectés) ─────────────────── #}
+    <span class="cc-sidebar-section">Principal</span>
+
+    <a href="{% url 'dashboard' %}" class="cc-nav-link">
+      <i class="ti ti-layout-dashboard"></i> Tableau de bord
+    </a>
+
+    {# ── SECTION PATIENTS (admin · doctor · nurse) ─────────────── #}
+    {% if request.user.role == 'admin' or request.user.role == 'doctor' or request.user.role == 'nurse' %}
+      <div class="cc-sidebar-divider"></div>
+      <span class="cc-sidebar-section">Patients</span>
+
+      <a href="{% url 'patient-list' %}" class="cc-nav-link">
+        <i class="ti ti-users"></i> Patients
+      </a>
+
+      {# Maladies : DRF IsDoctorOrNurseOrAdmin #}
+      <a href="{% url 'maladie-list' %}" class="cc-nav-link">
+        <i class="ti ti-virus"></i> Maladies
+      </a>
+    {% endif %}
+
+    {# ── SECTION CONSULTATIONS (admin · doctor · nurse) ─────────── #}
+    {% if request.user.role == 'admin' or request.user.role == 'doctor' or request.user.role == 'nurse' %}
+      <div class="cc-sidebar-divider"></div>
+      <span class="cc-sidebar-section">Consultations</span>
+
+      {# Suivi médical : DRF IsDoctorOrNurseOrAdmin #}
+      <a href="{% url 'suivi-list' %}" class="cc-nav-link">
+        <i class="ti ti-stethoscope"></i> Suivi médical
+      </a>
+
+      {# Rendez-vous : @role_required("admin","doctor","nurse") #}
+      <a href="{% url 'appointment-list' %}" class="cc-nav-link">
+        <i class="ti ti-calendar"></i> Rendez-vous
+      </a>
+
+      {# Calendrier : @role_required("admin","doctor","nurse") #}
+      <a href="{% url 'appointment-calendar' %}" class="cc-nav-link">
+        <i class="ti ti-calendar-month"></i> Calendrier
+      </a>
+
+      {# Créer RDV : @role_required("admin","doctor") seulement #}
+      {% if request.user.role == 'admin' or request.user.role == 'doctor' %}
+        <a href="{% url 'appointment-create' %}" class="cc-nav-link">
+          <i class="ti ti-calendar-plus"></i> Nouveau rendez-vous
+        </a>
+      {% endif %}
+    {% endif %}
+
+    {# ── ESPACE PATIENT (patient uniquement) ─────────────────────── #}
+    {% if request.user.role == 'patient' %}
+      <div class="cc-sidebar-divider"></div>
+      <span class="cc-sidebar-section">Mon espace</span>
+
+      {# mes-rendez-vous : @login_required + check role == 'patient' #}
+      <a href="{% url 'mes-rendez-vous' %}" class="cc-nav-link">
+        <i class="ti ti-calendar-event"></i> Mes rendez-vous
+      </a>
+
+      {# Dossier médical + fiche patient : @login_required
+         Accessibles uniquement si le compte est lié à un objet Patient
+         via la relation OneToOne compte_patient → profil_patient #}
+      {% with profil=request.user.profil_patient %}
+        {% if profil %}
+          <a href="{% url 'dossier-medical' profil.id %}" class="cc-nav-link">
+            <i class="ti ti-clipboard-text"></i> Mon dossier médical
+          </a>
+          <a href="{% url 'patient-detail' profil.id %}" class="cc-nav-link">
+            <i class="ti ti-id-badge"></i> Ma fiche patient
+          </a>
+        {% endif %}
+      {% endwith %}
+    {% endif %}
+
+    {# ── SECTION LABORATOIRE (admin · doctor · lab) ───────────────── #}
+    {% if request.user.role == 'admin' or request.user.role == 'doctor' or request.user.role == 'lab' %}
+      <div class="cc-sidebar-divider"></div>
+      <span class="cc-sidebar-section">Laboratoire</span>
+
+      {# LabTestViewSet : IsDoctorOrLabOrAdmin #}
+      <a href="{% url 'labtest-list' %}" class="cc-nav-link">
+        <i class="ti ti-flask"></i> Analyses
+      </a>
+
+      {# La prescription d'une analyse se fait depuis le suivi médical, pas depuis la sidebar #}
+    {% endif %}
+
+    {# ── SECTION PHARMACIE (admin · pharmacist) ───────────────────── #}
+    {# doctor : accès prescriptions uniquement (PrescriptionViewSet filtre medecin=user) #}
+    {% if request.user.role == 'admin' or request.user.role == 'pharmacist' or request.user.role == 'doctor' %}
+      <div class="cc-sidebar-divider"></div>
+      <span class="cc-sidebar-section">Pharmacie</span>
+
+      {# Prescriptions : PrescriptionViewSet list IsAuthenticated + filtre get_queryset #}
+      <a href="{% url 'prescription-list' %}" class="cc-nav-link">
+        <i class="ti ti-prescription"></i> Prescriptions
+      </a>
+
+      {# Stock et délivrances : MedicationViewSet IsPharmacistOrAdmin / DispensationViewSet IsPharmacistOrAdmin #}
+      {% if request.user.role == 'admin' or request.user.role == 'pharmacist' %}
+        <a href="{% url 'medication-list' %}" class="cc-nav-link">
+          <i class="ti ti-pill"></i> Stock médicaments
+        </a>
+
+        <a href="{% url 'dispensation-list' %}" class="cc-nav-link">
+          <i class="ti ti-package"></i> Délivrances
+        </a>
+      {% endif %}
+    {% endif %}
+
+    {# ── SECTION SURVEILLANCE (admin · doctor · nurse) ────────────── #}
+    {% if request.user.role == 'admin' or request.user.role == 'doctor' or request.user.role == 'nurse' %}
+      <div class="cc-sidebar-divider"></div>
+      <span class="cc-sidebar-section">Surveillance</span>
+
+      {# AlertViewSet : IsDoctorOrNurseOrAdmin #}
+      <a href="{% url 'monitoring-dashboard' %}" class="cc-nav-link">
+        <i class="ti ti-activity"></i> Centre de surveillance
+        <span class="cc-nav-badge">!</span>
+      </a>
+
+      <a href="{% url 'alert-list' %}" class="cc-nav-link">
+        <i class="ti ti-alert-triangle"></i> Alertes
+      </a>
+    {% endif %}
+
+    {# ── NOTIFICATIONS (tous les rôles — NotificationViewSet IsAuthenticated filtre par user) #}
+    <div class="cc-sidebar-divider"></div>
+    <a href="{% url 'notification-list' %}" class="cc-nav-link">
+      <i class="ti ti-bell"></i> Notifications
+    </a>
+
+    {# ── ADMINISTRATION (admin uniquement — @admin_required) ──────── #}
+    {% if request.user.role == 'admin' %}
+      <div class="cc-sidebar-divider"></div>
+      <span class="cc-sidebar-section">Administration</span>
+
+      <a href="{% url 'user-list' %}" class="cc-nav-link">
+        <i class="ti ti-users-group"></i> Utilisateurs
+      </a>
+
+      <a href="{% url 'user-register' %}" class="cc-nav-link">
+        <i class="ti ti-user-plus"></i> Créer un compte
+      </a>
+    {% endif %}
+
+    {# ── PROFIL & DÉCONNEXION (tous les rôles connectés) ─────────── #}
+    <div class="cc-sidebar-divider"></div>
+
+    <a href="{% url 'profile' %}" class="cc-nav-link">
+      <i class="ti ti-user-circle"></i> Mon profil
+    </a>
+
+    <a href="{% url 'user-logout' %}" class="cc-nav-link" style="color:#A32D2D">
+      <i class="ti ti-logout"></i> Déconnexion
+    </a>
+
+  {% else %}
+    {# ── NON CONNECTÉ ─────────────────────────────────────────────── #}
+    <span class="cc-sidebar-section">Accès</span>
+    <a href="{% url 'user-login' %}" class="cc-nav-link">
+      <i class="ti ti-login-2"></i> Connexion
+    </a>
+  {% endif %}
+
+  <div class="cc-sidebar-footer">
+    <div class="cc-sidebar-footer-info">
+      <span class="cc-status-dot"></span>
+      ChroniCare v1.0 — Licence 4
+    </div>
+  </div>
+
+</aside>

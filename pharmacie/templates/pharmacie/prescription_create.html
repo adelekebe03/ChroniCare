@@ -1,0 +1,188 @@
+{% extends "core/base.html" %}
+{% block title %}Créer une prescription — ChroniCare{% endblock %}
+{% block page_title %}Nouvelle prescription{% endblock %}
+
+{% block extra_css %}
+<style>
+  .cc-form-wrap { max-width:720px; }
+  .cc-card { background:#fff; border:1px solid rgba(0,0,0,.07); border-radius:12px; overflow:hidden; margin-bottom:16px; }
+  .cc-card-header { padding:14px 20px; border-bottom:1px solid rgba(0,0,0,.06); display:flex; align-items:center; gap:10px; }
+  .cc-card-header i { font-size:18px; color:#0F6E56; }
+  .cc-card-header h3 { font-size:14px; font-weight:700; color:#1C2833; margin:0; }
+  .cc-card-body { padding:20px; }
+
+  .pt-banner { background:linear-gradient(135deg,#4A2E7B,#6B46C1); color:#fff; border-radius:10px; padding:14px 18px; display:flex; align-items:center; gap:12px; margin-bottom:20px; }
+  .pt-banner i { font-size:24px; color:rgba(255,255,255,.8); }
+  .pt-banner .name { font-size:15px; font-weight:700; margin:0 0 3px; }
+  .pt-banner .meta { font-size:12px; color:rgba(255,255,255,.75); margin:0; }
+
+  .cc-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  @media(max-width:576px){ .cc-grid{ grid-template-columns:1fr; } }
+  .cc-field { display:flex; flex-direction:column; gap:5px; }
+  .cc-field label { font-size:12px; font-weight:600; color:#4A5568; }
+  .cc-field .form-control,
+  .cc-field .form-select { width:100%; padding:9px 12px; border:1px solid #E2E8F0; border-radius:8px; font-size:13px; background:#FAFBFC; outline:none; transition:border-color .15s; }
+  .cc-field .form-control:focus,
+  .cc-field .form-select:focus { border-color:#6B46C1; box-shadow:0 0 0 3px rgba(107,70,193,.1); background:#fff; }
+  .cc-field-error { font-size:11px; color:#C53030; }
+
+  /* Formset items */
+  .item-row { border:1px solid rgba(0,0,0,.07); border-radius:9px; padding:14px; margin-bottom:10px; background:#FAFBFC; position:relative; }
+  .item-row-header { font-size:11px; font-weight:700; color:#A0AEC0; text-transform:uppercase; margin-bottom:10px; }
+  .item-delete { position:absolute; top:10px; right:12px; }
+  .item-delete input[type=checkbox] { accent-color:#C0392B; width:14px; height:14px; }
+
+  .btn-add-item { display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:600; color:#6B46C1; background:#F3EFFF; border:1px dashed #9F7AEA; border-radius:8px; padding:8px 14px; cursor:pointer; text-decoration:none; margin-top:6px; transition:.14s; }
+  .btn-add-item:hover { background:#EDE7F6; }
+
+  .cc-footer { display:flex; align-items:center; gap:10px; padding-top:16px; border-top:1px solid rgba(0,0,0,.06); margin-top:8px; }
+  .btn-primary   { background:#6B46C1; color:#fff; border:none; padding:10px 22px; border-radius:9px; font-size:13px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:7px; transition:.14s; }
+  .btn-primary:hover   { background:#4A2E7B; }
+  .btn-secondary { background:#F4F9FC; color:#4A5568; border:1px solid rgba(0,0,0,.08); padding:10px 18px; border-radius:9px; font-size:13px; font-weight:600; text-decoration:none; display:inline-flex; align-items:center; gap:7px; }
+  .btn-secondary:hover { background:#E8EEF2; }
+
+  .formset-management { display:none; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="cc-form-wrap">
+
+  <!-- Contexte patient -->
+  <div class="pt-banner">
+    <i class="ti ti-prescription"></i>
+    <div>
+      <p class="name">{{ patient.nom }} {{ patient.prenom }}</p>
+      <p class="meta">
+        Suivi du {{ suivi.created_at|date:"d/m/Y" }}
+        {% if suivi.medecin %} · Dr. {{ suivi.medecin.get_full_name|default:suivi.medecin.username }}{% endif %}
+      </p>
+    </div>
+  </div>
+
+  <form method="POST" novalidate>
+    {% csrf_token %}
+
+    {% if form.errors or formset.non_form_errors %}
+      <div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:9px;padding:12px 16px;margin-bottom:18px;font-size:13px;color:#991B1B;">
+        <strong>Erreurs à corriger :</strong>
+        <ul style="margin:6px 0 0 16px;padding:0;">
+          {% for field in form %}{% for e in field.errors %}<li>{{ field.label }} : {{ e }}</li>{% endfor %}{% endfor %}
+          {% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}
+          {% for e in formset.non_form_errors %}<li>{{ e }}</li>{% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+
+    <!-- Informations générales -->
+    <div class="cc-card">
+      <div class="cc-card-header">
+        <i class="ti ti-clipboard-list"></i>
+        <h3>Informations générales</h3>
+      </div>
+      <div class="cc-card-body">
+        <div class="cc-grid">
+          <div class="cc-field">
+            <label for="{{ form.maladie.id_for_label }}">Maladie concernée</label>
+            {{ form.maladie }}
+            {% if form.maladie.errors %}<span class="cc-field-error">{{ form.maladie.errors|join:" " }}</span>{% endif %}
+          </div>
+          <div class="cc-field">
+            <label for="{{ form.duree_standard.id_for_label }}">Fréquence de renouvellement <span style="color:#C53030;">*</span></label>
+            {{ form.duree_standard }}
+            {% if form.duree_standard.errors %}<span class="cc-field-error">{{ form.duree_standard.errors|join:" " }}</span>{% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Médicaments prescrits -->
+    <div class="cc-card">
+      <div class="cc-card-header">
+        <i class="ti ti-pill"></i>
+        <h3>Médicaments prescrits</h3>
+      </div>
+      <div class="cc-card-body">
+
+        {{ formset.management_form }}
+
+        <div id="formset-container">
+          {% for item_form in formset %}
+            <div class="item-row{% if item_form.DELETE.value %} d-none{% endif %}">
+              <div class="item-row-header">Médicament {{ forloop.counter }}</div>
+              <div class="formset-management">{{ item_form.id }}</div>
+              <div class="cc-grid">
+                <div class="cc-field">
+                  <label>Médicament</label>
+                  {{ item_form.medication }}
+                  {% if item_form.medication.errors %}<span class="cc-field-error">{{ item_form.medication.errors|join:" " }}</span>{% endif %}
+                </div>
+                <div class="cc-field">
+                  <label>Dosage</label>
+                  {{ item_form.dosage }}
+                  {% if item_form.dosage.errors %}<span class="cc-field-error">{{ item_form.dosage.errors|join:" " }}</span>{% endif %}
+                </div>
+                <div class="cc-field">
+                  <label>Fréquence de prise</label>
+                  {{ item_form.frequence }}
+                  {% if item_form.frequence.errors %}<span class="cc-field-error">{{ item_form.frequence.errors|join:" " }}</span>{% endif %}
+                </div>
+                <div class="cc-field">
+                  <label>Quantité</label>
+                  {{ item_form.quantite }}
+                  {% if item_form.quantite.errors %}<span class="cc-field-error">{{ item_form.quantite.errors|join:" " }}</span>{% endif %}
+                </div>
+              </div>
+              <div style="margin-top:10px;display:flex;align-items:center;gap:6px;">
+                <label style="font-size:11px;color:#A0AEC0;">
+                  {{ item_form.DELETE }} Supprimer ce médicament
+                </label>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+
+        <button type="button" class="btn-add-item" id="add-item">
+          <i class="ti ti-plus"></i> Ajouter un médicament
+        </button>
+
+      </div>
+    </div>
+
+    <div class="cc-footer">
+      <button type="submit" class="btn-primary">
+        <i class="ti ti-check"></i> Créer la prescription
+      </button>
+      <a href="{% url 'dossier-medical' patient.id %}" class="btn-secondary">
+        <i class="ti ti-arrow-left"></i> Retour au dossier
+      </a>
+    </div>
+
+  </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const container  = document.getElementById('formset-container');
+const totalForms = document.getElementById('id_form-TOTAL_FORMS');
+
+document.getElementById('add-item').addEventListener('click', function () {
+  const count = parseInt(totalForms.value);
+  const newRow = container.querySelector('.item-row').cloneNode(true);
+
+  newRow.querySelectorAll('input, select').forEach(el => {
+    el.name  = el.name.replace(/-\d+-/, `-${count}-`);
+    el.id    = el.id.replace(/-\d+-/, `-${count}-`);
+    if (el.type !== 'checkbox') el.value = '';
+    if (el.type === 'checkbox') el.checked = false;
+  });
+  newRow.querySelectorAll('label').forEach(el => {
+    if (el.htmlFor) el.htmlFor = el.htmlFor.replace(/-\d+-/, `-${count}-`);
+  });
+  newRow.querySelector('.item-row-header').textContent = `Médicament ${count + 1}`;
+  container.appendChild(newRow);
+  totalForms.value = count + 1;
+});
+</script>
+{% endblock %}

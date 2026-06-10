@@ -1,0 +1,73 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+
+<div class="container mt-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+
+        <h2 class="fw-bold">
+            Détail Rendez-vous
+        </h2>
+
+        <a href="{% url 'appointments' %}" class="btn btn-secondary">
+            ← Retour
+        </a>
+
+    </div>
+
+    <div class="card shadow-sm border-0">
+
+        <div class="card-body">
+
+            <p>
+                <strong>Patient :</strong>
+                {{ appointment.patient }}
+            </p>
+
+            <p>
+                <strong>Médecin :</strong>
+                Dr. {{ appointment.doctor }}
+            </p>
+
+            <p>
+                <strong>Date :</strong>
+                {{ appointment.date }}
+            </p>
+
+            <p>
+                <strong>Heure :</strong>
+                {{ appointment.heure }}
+            </p>
+
+            <p>
+                <strong>Motif :</strong>
+                {{ appointment.motif }}
+            </p>
+
+            <p>
+                <strong>Notes :</strong><br>
+                {{ appointment.notes }}
+            </p>
+
+            <p>
+                <strong>Statut :</strong>
+
+                {% if appointment.status == 'planifie' %}
+                    <span class="badge bg-primary">Planifié</span>
+
+                {% elif appointment.status == 'effectue' %}
+                    <span class="badge bg-success">Effectué</span>
+
+                {% else %}
+                    <span class="badge bg-danger">Annulé</span>
+                {% endif %}
+            </p>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

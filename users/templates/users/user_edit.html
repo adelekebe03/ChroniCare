@@ -1,0 +1,161 @@
+{% extends 'core/base.html' %}
+{% block title %}Modifier — {{ user_obj.get_full_name|default:user_obj.username }} — ChroniCare{% endblock %}
+{% block page_title %}Modifier un utilisateur{% endblock %}
+
+{% block extra_css %}
+<style>
+  .cc-form-wrap { max-width:680px; }
+  .cc-form-card { background:#fff; border:1px solid rgba(0,0,0,.07); border-radius:12px; overflow:hidden; }
+  .cc-form-header { padding:18px 24px; border-bottom:1px solid rgba(0,0,0,.06); display:flex; align-items:center; justify-content:space-between; }
+  .cc-form-header-left { display:flex; align-items:center; gap:10px; }
+  .cc-form-header h2 { font-size:16px; font-weight:700; color:#1C2833; margin:0; }
+  .cc-form-header i  { color:#0F6E56; font-size:20px; }
+  .cc-user-chip { display:inline-flex; align-items:center; gap:7px; padding:5px 12px; border-radius:20px; font-size:12px; font-weight:600; background:#E1F5EE; color:#085041; }
+  .cc-user-chip.role-doctor     { background:#E1F5EE; color:#085041; }
+  .cc-user-chip.role-nurse      { background:#E6F1FB; color:#0C447C; }
+  .cc-user-chip.role-patient    { background:#FAEEDA; color:#633806; }
+  .cc-user-chip.role-pharmacist { background:#EDE7F6; color:#4A2E7B; }
+  .cc-user-chip.role-lab        { background:#E0F7FA; color:#075568; }
+  .cc-user-chip.role-admin      { background:#FCEBEB; color:#791F1F; }
+
+  .cc-form-body { padding:24px; }
+
+  .cc-form-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  @media(max-width:576px){ .cc-form-grid{ grid-template-columns:1fr; } }
+  .cc-field-full { grid-column:1/-1; }
+  .cc-field { display:flex; flex-direction:column; gap:5px; }
+  .cc-field label { font-size:12px; font-weight:600; color:#4A5568; }
+  .cc-field input,
+  .cc-field select { width:100%; padding:9px 12px; border:1px solid #E2E8F0; border-radius:8px; font-size:13px; background:#FAFBFC; color:#1C2833; outline:none; transition:border-color .15s, box-shadow .15s; }
+  .cc-field input:focus, .cc-field select:focus { border-color:#0F6E56; box-shadow:0 0 0 3px rgba(15,110,86,.1); background:#fff; }
+  .cc-field-error { font-size:11px; color:#C53030; }
+  .cc-field-hint  { font-size:11px; color:#A0AEC0; }
+  .cc-section-label { font-size:11px; font-weight:700; color:#A0AEC0; text-transform:uppercase; letter-spacing:.06em; grid-column:1/-1; padding-top:8px; border-top:1px solid rgba(0,0,0,.05); margin-top:4px; }
+
+  .cc-form-errors { background:#FCEBEB; border:1px solid #F0D5D5; border-radius:9px; padding:12px 16px; margin-bottom:20px; font-size:13px; color:#791F1F; }
+  .cc-form-errors ul { margin:6px 0 0 16px; padding:0; }
+
+  .cc-form-footer { display:flex; align-items:center; gap:10px; padding-top:20px; border-top:1px solid rgba(0,0,0,.05); margin-top:20px; flex-wrap:wrap; }
+  .btn-submit { background:#0F6E56; color:#fff; border:none; padding:10px 22px; border-radius:9px; font-size:13px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:7px; transition:.14s; }
+  .btn-submit:hover { background:#085041; }
+  .btn-back   { background:#F4F9FC; color:#4A5568; border:1px solid rgba(0,0,0,.08); padding:10px 22px; border-radius:9px; font-size:13px; font-weight:600; text-decoration:none; display:inline-flex; align-items:center; gap:7px; }
+  .btn-back:hover { background:#E8EEF2; }
+
+  #specialiteRow { display:none !important; }
+  #specialiteRow.visible { display:flex !important; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="cc-form-wrap">
+  <div class="cc-form-card">
+    <div class="cc-form-header">
+      <div class="cc-form-header-left">
+        <i class="ti ti-edit"></i>
+        <h2>Modifier : {{ user_obj.get_full_name|default:user_obj.username }}</h2>
+      </div>
+      <span class="cc-user-chip role-{{ user_obj.role }}">{{ user_obj.get_role_display }}</span>
+    </div>
+    <div class="cc-form-body">
+
+      {% if form.errors %}
+        <div class="cc-form-errors">
+          <strong>Erreurs à corriger :</strong>
+          <ul>
+            {% for field in form %}
+              {% for error in field.errors %}
+                <li><strong>{{ field.label }} :</strong> {{ error }}</li>
+              {% endfor %}
+            {% endfor %}
+            {% for error in form.non_field_errors %}
+              <li>{{ error }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+
+      <!-- form utilise UserForm (backend : UserForm dans users/forms.py) -->
+      <form method="POST" enctype="multipart/form-data" novalidate>
+        {% csrf_token %}
+
+        <div class="cc-form-grid">
+
+          <div class="cc-field">
+            <label for="{{ form.username.id_for_label }}">Identifiant</label>
+            {{ form.username }}
+            {% if form.username.errors %}<span class="cc-field-error">{{ form.username.errors|join:" " }}</span>{% endif %}
+          </div>
+
+          <div class="cc-field">
+            <label for="{{ form.email.id_for_label }}">Adresse e-mail</label>
+            {{ form.email }}
+          </div>
+
+          <div class="cc-field">
+            <label for="{{ form.first_name.id_for_label }}">Prénom</label>
+            {{ form.first_name }}
+          </div>
+
+          <div class="cc-field">
+            <label for="{{ form.last_name.id_for_label }}">Nom</label>
+            {{ form.last_name }}
+          </div>
+
+          <div class="cc-field">
+            <label for="{{ form.role.id_for_label }}">Rôle</label>
+            {{ form.role }}
+            {% if form.role.errors %}<span class="cc-field-error">{{ form.role.errors|join:" " }}</span>{% endif %}
+          </div>
+
+          <div class="cc-field">
+            <label for="{{ form.contact.id_for_label }}">Téléphone / Contact</label>
+            {{ form.contact }}
+          </div>
+
+          <div class="cc-field cc-field-full" id="specialiteRow">
+            <label for="{{ form.specialite.id_for_label }}">Spécialité</label>
+            {{ form.specialite }}
+            <span class="cc-field-hint">Obligatoire pour les médecins</span>
+            {% if form.specialite.errors %}<span class="cc-field-error">{{ form.specialite.errors|join:" " }}</span>{% endif %}
+          </div>
+
+          <div class="cc-field cc-field-full">
+            <label for="{{ form.photo.id_for_label }}">Photo de profil</label>
+            {{ form.photo }}
+          </div>
+
+        </div>
+
+        <div class="cc-form-footer">
+          <button type="submit" class="btn-submit">
+            <i class="ti ti-device-floppy"></i> Enregistrer les modifications
+          </button>
+          <a href="{% url 'user-list' %}" class="btn-back">
+            <i class="ti ti-arrow-left"></i> Annuler
+          </a>
+        </div>
+      </form>
+
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const roleSelect    = document.querySelector('select[name="role"]');
+  const specialiteRow = document.getElementById('specialiteRow');
+  function toggleSpecialite() {
+    if (!specialiteRow) return;
+    if (roleSelect && roleSelect.value === 'doctor') {
+      specialiteRow.classList.add('visible');
+    } else {
+      specialiteRow.classList.remove('visible');
+    }
+  }
+  if (roleSelect) {
+    roleSelect.addEventListener('change', toggleSpecialite);
+    toggleSpecialite();
+  }
+</script>
+{% endblock %}

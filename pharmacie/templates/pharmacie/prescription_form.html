@@ -1,0 +1,46 @@
+{% extends "core/base.html" %}
+{% block title %}Modifier la prescription — ChroniCare{% endblock %}
+{% block page_title %}Modifier la prescription{% endblock %}
+
+{% block extra_css %}
+<style>
+  .cc-form-card { background:#fff; border:1px solid rgba(0,0,0,.07); border-radius:12px; padding:24px; max-width:520px; }
+  .form-label { font-size:12px; font-weight:700; color:#4A5568; text-transform:uppercase; margin-bottom:4px; }
+  .form-control, .form-select { border-radius:8px; border:1px solid rgba(0,0,0,.15); padding:8px 12px; font-size:13px; width:100%; }
+  .form-group { margin-bottom:16px; }
+  .cc-meta { font-size:13px; color:#717D7E; margin-bottom:20px; }
+  .btn-cc { display:inline-flex; align-items:center; gap:6px; padding:9px 18px; border-radius:9px; font-size:13px; font-weight:600; text-decoration:none; border:none; cursor:pointer; transition:.15s; }
+  .btn-primary   { background:#6B46C1; color:#fff; }
+  .btn-primary:hover   { background:#4A2E7B; color:#fff; }
+  .btn-secondary { background:#fff; border:1px solid rgba(0,0,0,.12); color:#4A5568; }
+  .btn-secondary:hover { background:#F4F9FC; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="cc-form-card">
+  <p class="cc-meta">
+    Patient : <strong>{{ prescription.patient.nom }} {{ prescription.patient.prenom }}</strong>
+  </p>
+  <form method="POST">
+    {% csrf_token %}
+    {% for field in form %}
+    <div class="form-group">
+      <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+      {{ field }}
+      {% if field.errors %}
+        <div style="color:#791F1F;font-size:12px;margin-top:4px;">{{ field.errors.as_text }}</div>
+      {% endif %}
+    </div>
+    {% endfor %}
+    <div style="display:flex;gap:10px;margin-top:8px;">
+      <button type="submit" class="btn-cc btn-primary">
+        <i class="ti ti-check"></i> Enregistrer
+      </button>
+      <a href="{% url 'prescription-detail' prescription.id %}" class="btn-cc btn-secondary">
+        <i class="ti ti-arrow-left"></i> Annuler
+      </a>
+    </div>
+  </form>
+</div>
+{% endblock %}

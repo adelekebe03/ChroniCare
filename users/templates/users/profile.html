@@ -1,0 +1,136 @@
+{% extends 'core/base.html' %}
+{% block title %}Mon profil — ChroniCare{% endblock %}
+{% block page_title %}Mon profil{% endblock %}
+
+{% block extra_css %}
+<style>
+  .cc-profile-wrap { display:grid; grid-template-columns:280px 1fr; gap:20px; }
+  @media(max-width:768px){ .cc-profile-wrap{ grid-template-columns:1fr; } }
+
+  .cc-profile-card, .cc-info-card {
+    background:#fff; border:1px solid rgba(0,0,0,.07);
+    border-radius:12px; overflow:hidden;
+  }
+  .cc-profile-card { padding:24px; text-align:center; }
+  .cc-avatar-lg {
+    width:88px; height:88px; border-radius:50%;
+    background:linear-gradient(135deg,#0F6E56,#1D9E75);
+    display:flex; align-items:center; justify-content:center;
+    font-size:30px; font-weight:700; color:#fff;
+    margin:0 auto 14px;
+  }
+  .cc-avatar-img { width:88px; height:88px; border-radius:50%; object-fit:cover; margin:0 auto 14px; display:block; }
+  .cc-profile-name { font-size:17px; font-weight:700; color:#1C2833; margin:0 0 4px; }
+  .cc-profile-username { font-size:12px; color:#717D7E; margin:0 0 10px; }
+  .cc-role-badge {
+    display:inline-flex; padding:4px 12px; border-radius:20px;
+    font-size:12px; font-weight:600; margin-bottom:16px;
+  }
+  .rb-admin      { background:#FCEBEB; color:#791F1F; }
+  .rb-doctor     { background:#E1F5EE; color:#085041; }
+  .rb-nurse      { background:#E6F1FB; color:#0C447C; }
+  .rb-patient    { background:#FAEEDA; color:#633806; }
+  .rb-pharmacist { background:#EDE7F6; color:#4A2E7B; }
+  .rb-lab        { background:#E0F7FA; color:#075568; }
+
+  .cc-status { display:flex; align-items:center; justify-content:center; gap:6px; font-size:12px; color:#717D7E; }
+  .cc-status-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+  .dot-active   { background:#1D9E75; }
+  .dot-inactive { background:#E53E3E; }
+
+  .cc-info-card .cc-info-header { padding:16px 20px; border-bottom:1px solid rgba(0,0,0,.06); display:flex; align-items:center; justify-content:space-between; }
+  .cc-info-header h3 { font-size:14px; font-weight:600; color:#1C2833; margin:0; display:flex; align-items:center; gap:8px; }
+  .cc-info-header h3 i { color:#0F6E56; font-size:17px; }
+  .cc-info-body { padding:20px; }
+  .cc-field-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px 24px; }
+  @media(max-width:576px){ .cc-field-grid{ grid-template-columns:1fr; } }
+  .cc-field label { display:block; font-size:11px; font-weight:700; color:#A0AEC0; text-transform:uppercase; margin-bottom:4px; }
+  .cc-field span  { font-size:14px; color:#1C2833; }
+
+  .btn-cc { display:inline-flex; align-items:center; gap:7px; padding:9px 16px; border-radius:9px; font-size:13px; font-weight:600; text-decoration:none; transition:.15s; }
+  .btn-primary { background:#0F6E56; color:#fff; }
+  .btn-primary:hover { background:#085041; color:#fff; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="cc-profile-wrap">
+
+  {# Carte identité #}
+  <div class="cc-profile-card">
+    {% if request.user.photo %}
+      <img src="{{ request.user.photo.url }}" class="cc-avatar-img" alt="Photo de profil">
+    {% else %}
+      <div class="cc-avatar-lg">
+        {{ request.user.first_name|first|upper }}{{ request.user.last_name|first|upper }}
+      </div>
+    {% endif %}
+
+    <div class="cc-profile-name">{{ request.user.get_full_name|default:request.user.username }}</div>
+    <div class="cc-profile-username">@{{ request.user.username }}</div>
+
+    {# get_role_display() retourne le libellé du ROLE_CHOICES (ex: "Pharmacien") #}
+    <span class="cc-role-badge rb-{{ request.user.role }}">{{ request.user.get_role_display }}</span>
+
+    <div class="cc-status">
+      {% if request.user.is_active_status %}
+        <span class="cc-status-dot dot-active"></span> Compte actif
+      {% else %}
+        <span class="cc-status-dot dot-inactive"></span> Compte inactif
+      {% endif %}
+    </div>
+
+    <div style="margin-top:20px;">
+      <a href="{% url 'profile-edit' %}" class="btn-cc btn-primary" style="width:100%;justify-content:center;">
+        <i class="ti ti-edit"></i> Modifier mon profil
+      </a>
+    </div>
+  </div>
+
+  {# Carte infos détaillées #}
+  <div class="cc-info-card">
+    <div class="cc-info-header">
+      <h3><i class="ti ti-user"></i> Informations personnelles</h3>
+    </div>
+    <div class="cc-info-body">
+      <div class="cc-field-grid">
+        <div class="cc-field">
+          <label>Prénom</label>
+          <span>{{ request.user.first_name|default:"—" }}</span>
+        </div>
+        <div class="cc-field">
+          <label>Nom</label>
+          <span>{{ request.user.last_name|default:"—" }}</span>
+        </div>
+        <div class="cc-field">
+          <label>Identifiant</label>
+          <span>{{ request.user.username }}</span>
+        </div>
+        <div class="cc-field">
+          <label>Adresse e-mail</label>
+          <span>{{ request.user.email|default:"—" }}</span>
+        </div>
+        <div class="cc-field">
+          <label>Téléphone / Contact</label>
+          <span>{{ request.user.contact|default:"—" }}</span>
+        </div>
+        <div class="cc-field">
+          <label>Rôle</label>
+          <span>{{ request.user.get_role_display }}</span>
+        </div>
+        {% if request.user.role == 'doctor' %}
+        <div class="cc-field">
+          <label>Spécialité</label>
+          <span>{{ request.user.specialite|default:"—" }}</span>
+        </div>
+        {% endif %}
+        <div class="cc-field">
+          <label>Membre depuis</label>
+          <span>{{ request.user.date_joined|date:"d/m/Y" }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

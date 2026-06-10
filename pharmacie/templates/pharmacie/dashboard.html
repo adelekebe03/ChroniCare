@@ -1,0 +1,158 @@
+{% extends "core/base.html" %}
+{% block title %}Pharmacie — ChroniCare{% endblock %}
+{% block page_title %}Module Pharmacie{% endblock %}
+
+{% block extra_css %}
+<style>
+  .role-banner { background:linear-gradient(135deg,#4A2E7B,#6B46C1); color:#fff; padding:22px 26px; border-radius:14px; margin-bottom:22px; display:flex; align-items:center; gap:18px; }
+  .role-banner .icon { width:56px; height:56px; border-radius:14px; background:rgba(255,255,255,.18); display:flex; align-items:center; justify-content:center; }
+  .role-banner .icon i { font-size:30px; color:#DDD6FE; }
+  .role-banner h1 { font-size:22px; font-weight:700; margin:0 0 4px; }
+  .role-banner p  { font-size:13px; margin:0; color:rgba(255,255,255,.85); }
+
+  .quick-actions { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; margin-bottom:22px; }
+  .qa { background:#fff; border:1px solid rgba(0,0,0,.07); border-radius:10px; padding:14px; text-align:center; text-decoration:none; color:#1C2833; transition:.15s; }
+  .qa:hover { border-color:#6B46C1; transform:translateY(-1px); color:#4A2E7B; }
+  .qa i { font-size:22px; color:#6B46C1; display:block; margin-bottom:6px; }
+
+  .stat-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:14px; margin-bottom:22px; }
+  .stat-card { background:#fff; border:1px solid rgba(0,0,0,.07); border-radius:12px; padding:16px; }
+  .stat-card .top { display:flex; align-items:center; justify-content:space-between; }
+  .stat-card .ico { width:36px; height:36px; border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:19px; }
+  .stat-card .val { font-size:26px; font-weight:700; margin-top:8px; color:#1C2833; }
+  .stat-card .lbl { font-size:12px; color:#717D7E; }
+  .ico-purp  { background:#EDE7F6; color:#4A2E7B; }
+  .ico-teal  { background:#E1F5EE; color:#085041; }
+  .ico-amber { background:#FAEEDA; color:#633806; }
+  .ico-red   { background:#FCEBEB; color:#791F1F; }
+
+  .card { background:#fff; border:1px solid rgba(0,0,0,.07); border-radius:12px; overflow:hidden; margin-bottom:16px; }
+  .card-header { padding:14px 18px; border-bottom:1px solid rgba(0,0,0,.06); display:flex; align-items:center; justify-content:space-between; }
+  .card-title { font-size:14px; font-weight:600; color:#1C2833; display:flex; align-items:center; gap:8px; margin:0; }
+  .card-title i { font-size:17px; color:#6B46C1; }
+  .card-link { font-size:12px; color:#6B46C1; text-decoration:none; font-weight:500; }
+  .card-link:hover { text-decoration:underline; }
+
+  table.cc-table { width:100%; border-collapse:collapse; font-size:13px; }
+  table.cc-table th { padding:8px 14px; text-align:left; font-size:11px; font-weight:700; color:#A0AEC0; text-transform:uppercase; }
+  table.cc-table td { padding:10px 14px; border-bottom:1px solid rgba(0,0,0,.04); }
+  table.cc-table tbody tr:hover { background:#F9F6FF; }
+
+  .badge { display:inline-flex; font-size:11px; font-weight:600; padding:3px 9px; border-radius:20px; }
+  .b-urgent   { background:#FCEBEB; color:#791F1F; }
+  .b-active   { background:#E1F5EE; color:#085041; }
+  .b-attente  { background:#FAEEDA; color:#633806; }
+  .b-rupture  { background:#FCEBEB; color:#791F1F; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="role-banner">
+  <div class="icon"><i class="ti ti-pill"></i></div>
+  <div>
+    <h1>Espace Pharmacie</h1>
+    <p>Bonjour {{ request.user.get_full_name|default:request.user.username }} — Gérez les dispensations et le stock.</p>
+  </div>
+</div>
+
+<div class="quick-actions">
+  <a href="{% url 'prescription-list' %}" class="qa"><i class="ti ti-prescription"></i> Prescriptions</a>
+  <a href="{% url 'medication-list' %}" class="qa"><i class="ti ti-pill"></i> Stock</a>
+  <a href="{% url 'dispensation-list' %}" class="qa"><i class="ti ti-package"></i> Délivrances</a>
+  <a href="{% url 'add-lot' %}" class="qa"><i class="ti ti-plus"></i> Ajouter un lot</a>
+</div>
+
+<div class="stat-grid">
+  <div class="stat-card">
+    <div class="top"><span class="lbl">Renouvellements urgents</span><div class="ico ico-amber"><i class="ti ti-clock"></i></div></div>
+    <div class="val">{{ nb_renouvellements }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="top"><span class="lbl">Ruptures de stock</span><div class="ico ico-red"><i class="ti ti-alert-circle"></i></div></div>
+    <div class="val">{{ nb_ruptures }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="top"><span class="lbl">Délivrances récentes</span><div class="ico ico-teal"><i class="ti ti-package"></i></div></div>
+    <div class="val">{{ dispensations_recentes|length }}</div>
+  </div>
+</div>
+
+<!-- Renouvellements urgents -->
+{% if prescriptions_urgentes %}
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title"><i class="ti ti-alert-triangle"></i> Renouvellements urgents (&le; 7 jours)</h3>
+    <a href="{% url 'prescription-list' %}" class="card-link">Voir toutes →</a>
+  </div>
+  <table class="cc-table">
+    <thead><tr><th>Patient</th><th>Prochain renouvellement</th><th>Statut</th><th></th></tr></thead>
+    <tbody>
+      {% for p in prescriptions_urgentes %}
+      <tr>
+        <td>{{ p.patient.nom }} {{ p.patient.prenom }}</td>
+        <td><span class="badge b-urgent">{{ p.date_prochain_renouvellement|date:"d/m/Y" }}</span></td>
+        <td>
+          {% if p.statut == 'en_attente' %}<span class="badge b-attente">En attente</span>
+          {% elif p.statut == 'active' %}<span class="badge b-active">Active</span>
+          {% endif %}
+        </td>
+        <td>
+          <a href="{% url 'dispenser' p.id %}" style="color:#6B46C1;font-weight:600;font-size:12px;text-decoration:none;">
+            Dispenser →
+          </a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+<!-- Ruptures de stock -->
+{% if medications_critique %}
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title"><i class="ti ti-alert-circle"></i> Médicaments en rupture</h3>
+    <a href="{% url 'medication-list' %}" class="card-link">Voir le stock →</a>
+  </div>
+  <table class="cc-table">
+    <thead><tr><th>Médicament</th><th>Stock disponible</th><th>Seuil d'alerte</th></tr></thead>
+    <tbody>
+      {% for med in medications_critique %}
+      <tr>
+        <td>{{ med.nom }}</td>
+        <td><span class="badge b-rupture">{{ med.stock_total }}</span></td>
+        <td>{{ med.stock_minimum }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+<!-- Dispensations récentes -->
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title"><i class="ti ti-package"></i> Dispensations récentes</h3>
+    <a href="{% url 'dispensation-list' %}" class="card-link">Voir toutes →</a>
+  </div>
+  <table class="cc-table">
+    <thead><tr><th>Patient</th><th>Période</th><th>Pharmacien</th><th>Date</th><th></th></tr></thead>
+    <tbody>
+      {% for d in dispensations_recentes %}
+      <tr>
+        <td>{{ d.prescription.patient.nom }} {{ d.prescription.patient.prenom }}</td>
+        <td>{{ d.periode|date:"m/Y"|default:"—" }}</td>
+        <td>{% if d.pharmacien %}{{ d.pharmacien.get_full_name|default:d.pharmacien.username }}{% else %}—{% endif %}</td>
+        <td>{{ d.date|date:"d/m/Y" }}</td>
+        <td>
+          <a href="{% url 'dispensation-detail' d.pk %}" style="color:#6B46C1;font-weight:600;font-size:12px;text-decoration:none;">Détails →</a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5" style="text-align:center;color:#A0AEC0;padding:20px;">Aucune dispensation enregistrée</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

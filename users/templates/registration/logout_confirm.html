@@ -1,0 +1,32 @@
+{% extends "registration/auth_base.html" %}
+{% block title %}Déconnexion — ChroniCare{% endblock %}
+
+{% block hero_title %}À bientôt sur ChroniCare 👋{% endblock %}
+{% block hero_subtitle %}Vos données restent en sécurité. Reconnectez-vous à tout moment pour reprendre votre activité.{% endblock %}
+
+{% block auth_content %}
+  <div style="text-align:center;">
+    <div style="width:72px;height:72px;margin:0 auto 18px;border-radius:50%;background:#FCEBEB;display:flex;align-items:center;justify-content:center;">
+      <i class="ti ti-logout" style="font-size:34px;color:#C53030;"></i>
+    </div>
+
+    <h2 style="text-align:center;">Confirmer la déconnexion</h2>
+    <p class="subtitle" style="text-align:center;">
+      Vous êtes connecté en tant que
+      <strong style="color:#1C2833;">{{ request.user.get_full_name|default:request.user.username }}</strong>
+      ({{ request.user.get_role_display }}).<br>
+      Voulez-vous vraiment vous déconnecter ?
+    </p>
+
+    <form method="post" action="{% url 'user-logout' %}" class="auth-form">
+      {% csrf_token %}
+      <button type="submit" class="auth-btn danger">
+        <i class="ti ti-logout"></i> Oui, me déconnecter
+      </button>
+    </form>
+
+    <a href="javascript:history.back()" class="auth-btn secondary" style="display:block;margin-top:10px;text-align:center;text-decoration:none;">
+      <i class="ti ti-arrow-left"></i> Annuler
+    </a>
+  </div>
+{% endblock %}

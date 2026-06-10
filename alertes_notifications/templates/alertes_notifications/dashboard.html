@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard Alertes</title>
+
+    <style>
+        body {
+            font-family: Arial;
+            background: #ecf0f1;
+            padding: 20px;
+        }
+
+        .grid {
+            display: flex;
+            gap: 10px;
+        }
+
+        .card {
+            flex: 1;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .red { color: red; }
+        .orange { color: orange; }
+        .blue { color: blue; }
+    </style>
+</head>
+
+<body>
+
+<h1>📊 Dashboard Alertes</h1>
+
+<div class="grid">
+    <div class="card">
+        <h2 id="total">0</h2>
+        <p>Total Alertes</p>
+    </div>
+
+    <div class="card">
+        <h2 id="critical" class="red">0</h2>
+        <p>Critiques</p>
+    </div>
+
+    <div class="card">
+        <h2 id="warning" class="orange">0</h2>
+        <p>Warnings</p>
+    </div>
+
+    <div class="card">
+        <h2 id="resolved" class="blue">0</h2>
+        <p>Résolues</p>
+    </div>
+</div>
+
+<script>
+fetch("/api/alertes_notifications/alerts/")
+.then(r => r.json())
+.then(data => {
+
+    document.getElementById("total").innerText = data.length;
+
+    document.getElementById("critical").innerText =
+        data.filter(a => a.alert_type === "critical").length;
+
+    document.getElementById("warning").innerText =
+        data.filter(a => a.alert_type === "warning").length;
+
+    document.getElementById("resolved").innerText =
+        data.filter(a => a.is_resolved === true).length;
+});
+</script>
+
+</body>
+</html>

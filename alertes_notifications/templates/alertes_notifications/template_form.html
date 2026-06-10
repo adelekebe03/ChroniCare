@@ -1,0 +1,119 @@
+{% extends "core/base.html" %}
+{% block title %}Nouveau modèle de message — ChroniCare{% endblock %}
+{% block page_title %}Nouveau modèle de message{% endblock %}
+
+{% block extra_css %}
+<style>
+  .form-row { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  @media(max-width:640px){ .form-row{ grid-template-columns:1fr; } }
+  .form-group { margin-bottom:16px; }
+  .form-label { font-size:12px; font-weight:700; color:#4A5568; text-transform:uppercase; margin-bottom:5px; display:block; }
+  .form-control, .form-select { border-radius:8px; border:1px solid rgba(0,0,0,.15); padding:9px 12px; font-size:13px; width:100%; }
+  .form-control:focus, .form-select:focus { border-color:#1C2833; outline:none; }
+  textarea.form-control { min-height:160px; font-family:monospace; }
+  .hint { font-size:11px; color:#A0AEC0; margin-top:4px; }
+  .hint code { background:#F3F4F6; padding:1px 5px; border-radius:4px; }
+
+  .preview-box { background:#e5ddd5; border-radius:12px; padding:16px; min-height:200px; font-size:13px; white-space:pre-wrap; word-break:break-word; font-family:sans-serif; }
+  .preview-bubble { background:#fff; border-radius:0 10px 10px 10px; padding:12px 14px; display:inline-block; max-width:95%; box-shadow:0 1px 3px rgba(0,0,0,.12); }
+  .preview-time { font-size:10px; color:#A0AEC0; text-align:right; margin-top:4px; }
+
+  .btn-cc { display:inline-flex; align-items:center; gap:6px; padding:10px 18px; border-radius:9px; font-size:13px; font-weight:600; text-decoration:none; border:none; cursor:pointer; transition:.15s; }
+  .btn-primary   { background:#1C2833; color:#fff; }
+  .btn-primary:hover   { background:#0f1923; }
+  .btn-secondary { background:#fff; border:1px solid rgba(0,0,0,.12); color:#4A5568; }
+  .btn-secondary:hover { background:#F4F9FC; }
+  .cc-card { background:#fff; border:1px solid rgba(0,0,0,.07); border-radius:12px; padding:22px; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+{% if messages %}
+{% for msg in messages %}
+<div style="background:#FCEBEB;border-radius:9px;padding:12px 16px;margin-bottom:14px;font-size:13px;color:#791F1F;">
+  {{ msg }}
+</div>
+{% endfor %}
+{% endif %}
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+
+  <!-- Formulaire (POST natif Django — pas de fetch) -->
+  <div class="cc-card">
+    <h3 style="font-size:14px;font-weight:700;margin:0 0 18px;color:#1C2833;">Définir le modèle</h3>
+    <form method="POST" action="{% url 'template-create' %}">
+      {% csrf_token %}
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" for="title">Titre</label>
+          <input id="title" name="title" class="form-control" placeholder="Ex: Glycémie critique" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="code">Code unique</label>
+          <input id="code" name="code" class="form-control" placeholder="Ex: glycemie_critique">
+          <p class="hint">Laissez vide pour générer automatiquement depuis le titre.</p>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="type">Type</label>
+        <select id="type" name="type" class="form-select">
+          {% for val, label in type_choices %}
+          <option value="{{ val }}">{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="content">Contenu</label>
+        <textarea id="content" name="content" class="form-control" oninput="updatePreview()" required></textarea>
+        <p class="hint">
+          Variables : <code>{{patient_nom}}</code> <code>{{valeur}}</code>
+          <code>{{seuil}}</code> <code>{{unite}}</code> <code>{{date}}</code>
+          <code>{{type_mesure}}</code>
+        </p>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:4px;">
+        <button type="submit" class="btn-cc btn-primary">
+          <i class="ti ti-check"></i> Enregistrer
+        </button>
+        <a href="{% url 'template-page' %}" class="btn-cc btn-secondary">
+          <i class="ti ti-arrow-left"></i> Annuler
+        </a>
+      </div>
+    </form>
+  </div>
+
+  <!-- Aperçu en direct -->
+  <div class="cc-card">
+    <h3 style="font-size:14px;font-weight:700;margin:0 0 18px;color:#1C2833;">Aperçu du message</h3>
+    <div class="preview-box">
+      <div class="preview-bubble">
+        <div id="preview-content" style="color:#555;">Votre message s'affichera ici…</div>
+        <div class="preview-time">ChroniCare Hôpital — maintenant</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const EXEMPLE = {
+  '{{patient_nom}}': 'Toure Fode',
+  '{{valeur}}':      '18.2',
+  '{{seuil}}':       '16.0',
+  '{{unite}}':       'mmol/L',
+  '{{date}}':        new Date().toLocaleString('fr-FR'),
+  '{{type_mesure}}': 'glycémie',
+};
+
+function updatePreview() {
+  let text = document.getElementById('content').value || 'Votre message s\'affichera ici…';
+  for (const [key, val] of Object.entries(EXEMPLE)) {
+    text = text.split(key).join(val);
+  }
+  document.getElementById('preview-content').innerHTML =
+    text.replace(/\n/g, '<br>');
+}
+</script>
+
+{% endblock %}

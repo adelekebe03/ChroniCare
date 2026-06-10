@@ -1,0 +1,57 @@
+{% extends "registration/auth_base.html" %}
+{% block title %}Connexion — ChroniCare{% endblock %}
+
+{% block auth_content %}
+  <h2>Bienvenue 👋</h2>
+  <p class="subtitle">Connectez-vous à votre espace ChroniCare pour accéder à vos services médicaux.</p>
+
+  <form method="post" class="auth-form" autocomplete="on">
+    {% csrf_token %}
+
+    <div class="field">
+      <label for="id_username">Nom d'utilisateur</label>
+      <div class="auth-input-wrap">
+        <i class="ti ti-user lead"></i>
+        <input
+          type="text"
+          name="username"
+          id="id_username"
+          required
+          autofocus
+          autocomplete="username"
+          placeholder="ex : jdupont">
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="id_password">Mot de passe</label>
+      <div class="auth-input-wrap">
+        <i class="ti ti-lock lead"></i>
+        <input
+          type="password"
+          name="password"
+          id="id_password"
+          required
+          autocomplete="current-password"
+          placeholder="••••••••">
+        <button type="button" class="auth-toggle-pw" aria-label="Afficher / masquer le mot de passe">
+          <i class="ti ti-eye"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="auth-row">
+      <label>
+        <input type="checkbox" name="remember_me" value="1"> Se souvenir de moi
+      </label>
+      <a href="{% url 'password_reset' %}">Mot de passe oublié ?</a>
+    </div>
+
+    <button type="submit" class="auth-btn">
+      <i class="ti ti-login-2"></i> Se connecter
+    </button>
+  </form>
+  <div class="auth-footer">
+    Besoin d'aide ? Contactez votre administrateur.
+  </div>
+{% endblock %}

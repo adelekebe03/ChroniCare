@@ -1,0 +1,144 @@
+{% extends 'core/base.html' %}
+{% block title %}Détail analyse — ChroniCare{% endblock %}
+{% block page_title %}Détail de l'analyse{% endblock %}
+
+{% block extra_css %}
+<style>
+  .cc-detail-card { background:#fff; border:1px solid rgba(0,0,0,.07); border-radius:12px; padding:24px; margin-bottom:16px; }
+  .cc-detail-header { display:flex; align-items:center; gap:16px; margin-bottom:20px; }
+  .cc-detail-icon { width:52px; height:52px; border-radius:12px; background:#E0F7FA; display:flex; align-items:center; justify-content:center; }
+  .cc-detail-icon i { font-size:26px; color:#075568; }
+  .cc-detail-title { font-size:18px; font-weight:700; color:#1C2833; margin:0 0 2px; }
+  .cc-detail-sub { font-size:13px; color:#717D7E; }
+  .cc-dl { display:grid; grid-template-columns:1fr 1fr; gap:12px 24px; }
+  @media(max-width:768px){ .cc-dl{ grid-template-columns:1fr; } }
+  .cc-dl-item label { display:block; font-size:11px; font-weight:700; color:#A0AEC0; text-transform:uppercase; margin-bottom:3px; }
+  .cc-dl-item span { font-size:14px; color:#1C2833; }
+  .badge { display:inline-flex; font-size:11px; font-weight:600; padding:3px 9px; border-radius:20px; }
+  .b-attente  { background:#E6F1FB; color:#0C447C; }
+  .b-normal   { background:#E1F5EE; color:#085041; }
+  .b-anormal  { background:#FAEEDA; color:#633806; }
+  .b-critique { background:#FCEBEB; color:#791F1F; }
+  .b-valide   { background:#E1F5EE; color:#085041; }
+  .b-non-val  { background:#E6F1FB; color:#0C447C; }
+  .cc-actions { display:flex; gap:10px; flex-wrap:wrap; }
+  .btn-cc { display:inline-flex; align-items:center; gap:7px; padding:9px 16px; border-radius:9px; font-size:13px; font-weight:600; text-decoration:none; border:none; cursor:pointer; transition:.15s; }
+  .btn-primary { background:#0E7490; color:#fff; }
+  .btn-primary:hover { background:#075568; color:#fff; }
+  .btn-success { background:#085041; color:#fff; }
+  .btn-success:hover { background:#0F6E56; color:#fff; }
+  .btn-secondary { background:#fff; border:1px solid rgba(0,0,0,.12); color:#4A5568; }
+  .btn-secondary:hover { background:#F4F9FC; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="cc-detail-card">
+  <div class="cc-detail-header">
+    <div class="cc-detail-icon"><i class="ti ti-flask"></i></div>
+    <div>
+      <div class="cc-detail-title">{{ test.get_type_test_display }}</div>
+      <div class="cc-detail-sub">Patient : {{ test.patient }} — {{ test.date_test|date:"d/m/Y à H:i" }}</div>
+    </div>
+  </div>
+
+  <div class="cc-dl">
+    <div class="cc-dl-item">
+      <label>Patient</label>
+      <span>{{ test.patient }}</span>
+    </div>
+    <div class="cc-dl-item">
+      <label>Type d'analyse</label>
+      <span>{{ test.get_type_test_display }}</span>
+    </div>
+    <div class="cc-dl-item">
+      <label>Statut</label>
+      <span>
+        {% if test.status == 'en_attente' %}<span class="badge b-attente">En attente</span>
+        {% elif test.status == 'normal' %}<span class="badge b-normal">Normal</span>
+        {% elif test.status == 'anormal' %}<span class="badge b-anormal">Anormal</span>
+        {% elif test.status == 'critique' %}<span class="badge b-critique">Critique</span>
+        {% endif %}
+      </span>
+    </div>
+    <div class="cc-dl-item">
+      <label>Validation</label>
+      <span>
+        {% if test.is_validated %}
+          <span class="badge b-valide">Validé par {{ test.validated_by.get_full_name|default:test.validated_by.username }}</span>
+        {% else %}
+          <span class="badge b-non-val">Non validé</span>
+        {% endif %}
+      </span>
+    </div>
+    {% if test.valeur is not None %}
+    <div class="cc-dl-item">
+      <label>Valeur mesurée</label>
+      <span>{{ test.valeur }} {{ test.unite }}</span>
+    </div>
+    {% endif %}
+    {% if test.seuil_min is not None or test.seuil_max is not None %}
+    <div class="cc-dl-item">
+      <label>Valeurs normales</label>
+      <span>
+        {% if test.seuil_min is not None %}Min : {{ test.seuil_min }}{% endif %}
+        {% if test.seuil_min is not None and test.seuil_max is not None %} / {% endif %}
+        {% if test.seuil_max is not None %}Max : {{ test.seuil_max }}{% endif %}
+        {% if test.unite %} {{ test.unite }}{% endif %}
+      </span>
+    </div>
+    {% endif %}
+    <div class="cc-dl-item">
+      <label>Technicien</label>
+      <span>{% if test.technicien %}{{ test.technicien.get_full_name|default:test.technicien.username }}{% else %}Non assigné{% endif %}</span>
+    </div>
+    <div class="cc-dl-item">
+      <label>Date de l'analyse</label>
+      <span>{{ test.date_test|date:"d/m/Y H:i" }}</span>
+    </div>
+    {% if test.maladie %}
+    <div class="cc-dl-item">
+      <label>Maladie liée</label>
+      <span>{{ test.maladie }}</span>
+    </div>
+    {% endif %}
+  </div>
+
+  {% if test.resultat %}
+  <div style="margin-top:16px;">
+    <label style="display:block;font-size:11px;font-weight:700;color:#A0AEC0;text-transform:uppercase;margin-bottom:6px;">Résultat</label>
+    <p style="font-size:14px;color:#1C2833;background:#F4F9FC;border-radius:8px;padding:12px;margin:0;">{{ test.resultat }}</p>
+  </div>
+  {% endif %}
+
+  {% if test.notes_medecin %}
+  <div style="margin-top:16px;">
+    <label style="display:block;font-size:11px;font-weight:700;color:#A0AEC0;text-transform:uppercase;margin-bottom:6px;">Interprétation médecin</label>
+    <p style="font-size:14px;color:#1C2833;background:#E1F5EE;border-radius:8px;padding:12px;margin:0;border-left:3px solid #0F6E56;">{{ test.notes_medecin }}</p>
+  </div>
+  {% endif %}
+</div>
+
+<div class="cc-actions">
+  {% if request.user.role == 'lab' or request.user.role == 'admin' %}
+    {% if not test.is_validated %}
+      <a href="{% url 'labtest-result' test.pk %}" class="btn-cc btn-primary">
+        <i class="ti ti-edit"></i> Saisir le résultat
+      </a>
+      <a href="{% url 'labtest-validate' test.pk %}" class="btn-cc btn-success">
+        <i class="ti ti-check"></i> Valider l'analyse
+      </a>
+    {% endif %}
+  {% endif %}
+  {% if request.user.role == 'doctor' or request.user.role == 'admin' %}
+    {% if test.is_validated and not test.lu_par_medecin %}
+      <a href="{% url 'labtest-interpret' test.pk %}" class="btn-cc" style="background:#FAEEDA;color:#633806;">
+        <i class="ti ti-notes"></i> Interpréter le résultat
+      </a>
+    {% endif %}
+  {% endif %}
+  <a href="{% url 'labtest-list' %}" class="btn-cc btn-secondary">
+    <i class="ti ti-arrow-left"></i> Retour à la liste
+  </a>
+</div>
+{% endblock %}

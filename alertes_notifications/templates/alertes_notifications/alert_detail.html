@@ -1,0 +1,152 @@
+{% extends "core/base.html" %}
+{% block title %}Alerte médicale — ChroniCare{% endblock %}
+{% block page_title %}Détail de l'alerte{% endblock %}
+
+{% block extra_css %}
+<style>
+  .cc-card { background:#fff; border:1px solid rgba(0,0,0,.07); border-radius:12px; padding:22px; margin-bottom:16px; }
+  .cc-card.critical { border-left:4px solid #C0392B; }
+  .cc-card.warning  { border-left:4px solid #E67E22; }
+  .cc-card.info     { border-left:4px solid #2980B9; }
+  .cc-dl { display:grid; grid-template-columns:1fr 1fr; gap:12px 24px; }
+  @media(max-width:768px){ .cc-dl{ grid-template-columns:1fr; } }
+  .cc-dl-item label { display:block; font-size:11px; font-weight:700; color:#A0AEC0; text-transform:uppercase; margin-bottom:3px; }
+  .cc-dl-item span  { font-size:14px; color:#1C2833; }
+  .badge { display:inline-flex; font-size:11px; font-weight:600; padding:3px 9px; border-radius:20px; }
+  .b-critical { background:#FCEBEB; color:#791F1F; }
+  .b-warning  { background:#FAEEDA; color:#633806; }
+  .b-info     { background:#E6F1FB; color:#0C447C; }
+  .b-ok       { background:#E1F5EE; color:#085041; }
+  .message-box { background:#FEF2F2; border-radius:10px; padding:16px; font-size:14px; color:#1C2833; border-left:3px solid #C0392B; margin:14px 0; }
+  .message-box.warning { background:#FFFBEB; border-left-color:#E67E22; }
+  .message-box.info    { background:#EFF6FF; border-left-color:#2980B9; }
+  .btn-cc { display:inline-flex; align-items:center; gap:7px; padding:9px 18px; border-radius:9px; font-size:13px; font-weight:600; border:none; cursor:pointer; transition:.15s; text-decoration:none; }
+  .btn-resolve  { background:#085041; color:#fff; }
+  .btn-resolve:hover  { background:#0F6E56; color:#fff; }
+  .btn-ack      { background:#0C447C; color:#fff; }
+  .btn-ack:hover      { background:#0E7490; color:#fff; }
+  .btn-secondary{ background:#fff; border:1px solid rgba(0,0,0,.12); color:#4A5568; }
+  .btn-secondary:hover{ background:#F4F9FC; }
+  .timeline { border-left:3px solid #E5E7EB; padding-left:18px; margin-top:6px; }
+  .tl-item  { position:relative; padding-bottom:14px; }
+  .tl-item::before { content:''; width:11px; height:11px; border-radius:50%; background:#E5E7EB; border:2px solid #fff; position:absolute; left:-22px; top:2px; }
+  .tl-item.done::before { background:#085041; }
+  .tl-date  { font-size:11px; color:#A0AEC0; }
+  .tl-text  { font-size:13px; color:#1C2833; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+{% if messages %}
+{% for msg in messages %}
+<div style="background:{% if msg.tags == 'success' %}#E1F5EE{% else %}#FAEEDA{% endif %};border-radius:9px;padding:12px 16px;margin-bottom:14px;font-size:13px;color:{% if msg.tags == 'success' %}#085041{% else %}#633806{% endif %};">
+  {{ msg }}
+</div>
+{% endfor %}
+{% endif %}
+
+<div class="cc-card {{ alert.alert_type }}">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+    <div>
+      <div style="font-size:16px;font-weight:700;color:#1C2833;">
+        {% if alert.alert_type == 'critical' %}<span class="badge b-critical">Critique</span>
+        {% elif alert.alert_type == 'warning' %}<span class="badge b-warning">Avertissement</span>
+        {% else %}<span class="badge b-info">Info</span>{% endif %}
+        &nbsp;{{ alert.get_source_display }}
+      </div>
+      <div style="font-size:12px;color:#A0AEC0;margin-top:4px;">{{ alert.created_at|date:"d/m/Y à H:i" }}</div>
+    </div>
+  </div>
+
+  <div class="message-box {{ alert.alert_type }}">
+    {{ alert.message }}
+  </div>
+
+  <div class="cc-dl">
+    <div class="cc-dl-item">
+      <label>Patient</label>
+      <span>{{ alert.patient.nom }} {{ alert.patient.prenom }}</span>
+    </div>
+    <div class="cc-dl-item">
+      <label>Source</label>
+      <span>{{ alert.get_source_display }}</span>
+    </div>
+    {% if alert.source_suivi %}
+    <div class="cc-dl-item">
+      <label>Suivi médical lié</label>
+      <span>{{ alert.source_suivi.date_suivi|date:"d/m/Y" }} — {{ alert.source_suivi.type_suivi }}</span>
+    </div>
+    {% endif %}
+    {% if alert.source_labtest %}
+    <div class="cc-dl-item">
+      <label>Analyse liée</label>
+      <span>{{ alert.source_labtest.get_type_test_display }} — {{ alert.source_labtest.date_test|date:"d/m/Y" }}</span>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Chronologie -->
+<div class="cc-card">
+  <h3 style="font-size:14px;font-weight:700;margin:0 0 14px;color:#1C2833;">Chronologie</h3>
+  <div class="timeline">
+    <div class="tl-item done">
+      <div class="tl-text">Alerte créée</div>
+      <div class="tl-date">{{ alert.created_at|date:"d/m/Y à H:i" }}</div>
+    </div>
+    <div class="tl-item {% if alert.is_acknowledged %}done{% endif %}">
+      <div class="tl-text">
+        {% if alert.acknowledged_by %}
+          Accusée par {{ alert.acknowledged_by.get_full_name|default:alert.acknowledged_by.username }}
+        {% else %}
+          En attente d'accusé de réception
+        {% endif %}
+      </div>
+      {% if alert.acknowledged_at %}
+      <div class="tl-date">{{ alert.acknowledged_at|date:"d/m/Y à H:i" }}</div>
+      {% endif %}
+    </div>
+    <div class="tl-item {% if alert.is_resolved %}done{% endif %}">
+      <div class="tl-text">
+        {% if alert.resolved_by %}
+          Résolue par {{ alert.resolved_by.get_full_name|default:alert.resolved_by.username }}
+        {% else %}
+          En attente de résolution
+        {% endif %}
+      </div>
+      {% if alert.resolved_at %}
+      <div class="tl-date">{{ alert.resolved_at|date:"d/m/Y à H:i" }}</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Actions -->
+<div style="display:flex;gap:10px;flex-wrap:wrap;">
+  {% if not alert.is_acknowledged and not alert.is_resolved %}
+  <form method="POST" action="{% url 'alert-acknowledge' alert.pk %}">
+    {% csrf_token %}
+    <button type="submit" class="btn-cc btn-ack">
+      <i class="ti ti-eye-check"></i> Accuser réception
+    </button>
+  </form>
+  {% endif %}
+  {% if not alert.is_resolved %}
+  <form method="POST" action="{% url 'alert-resolve' alert.pk %}">
+    {% csrf_token %}
+    <button type="submit" class="btn-cc btn-resolve">
+      <i class="ti ti-check"></i> Marquer comme résolue
+    </button>
+  </form>
+  {% else %}
+  <span class="btn-cc btn-secondary" style="cursor:default;">
+    <i class="ti ti-check"></i> Alerte résolue
+  </span>
+  {% endif %}
+  <a href="{% url 'alert-list' %}" class="btn-cc btn-secondary">
+    <i class="ti ti-arrow-left"></i> Retour à la liste
+  </a>
+</div>
+
+{% endblock %}

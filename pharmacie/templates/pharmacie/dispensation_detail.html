@@ -1,0 +1,112 @@
+{% extends "core/base.html" %}
+{% block title %}Détail dispensation — ChroniCare{% endblock %}
+{% block page_title %}Détail de la dispensation{% endblock %}
+
+{% block extra_css %}
+<style>
+  .cc-card { background:#fff; border:1px solid rgba(0,0,0,.07); border-radius:12px; padding:22px; margin-bottom:16px; }
+  .cc-dl { display:grid; grid-template-columns:1fr 1fr; gap:12px 24px; }
+  @media(max-width:768px){ .cc-dl{ grid-template-columns:1fr; } }
+  .cc-dl-item label { display:block; font-size:11px; font-weight:700; color:#A0AEC0; text-transform:uppercase; margin-bottom:3px; }
+  .cc-dl-item span  { font-size:14px; color:#1C2833; }
+  table.cc-table { width:100%; border-collapse:collapse; font-size:13px; }
+  table.cc-table th { padding:8px 12px; text-align:left; font-size:11px; font-weight:700; color:#A0AEC0; text-transform:uppercase; }
+  table.cc-table td { padding:10px 12px; border-bottom:1px solid rgba(0,0,0,.04); }
+  table.cc-table tbody tr:hover { background:#F9F6FF; }
+  .btn-cc { display:inline-flex; align-items:center; gap:6px; padding:9px 16px; border-radius:9px; font-size:13px; font-weight:600; text-decoration:none; border:none; cursor:pointer; transition:.15s; }
+  .btn-secondary { background:#fff; border:1px solid rgba(0,0,0,.12); color:#4A5568; }
+  .btn-secondary:hover { background:#F4F9FC; }
+  .btn-purple { background:#6B46C1; color:#fff; }
+  .btn-purple:hover { background:#4A2E7B; color:#fff; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="cc-card">
+  <div class="cc-dl">
+    <div class="cc-dl-item">
+      <label>Patient</label>
+      <span>{{ dispensation.prescription.patient.nom }} {{ dispensation.prescription.patient.prenom }}</span>
+    </div>
+    <div class="cc-dl-item">
+      <label>Médecin prescripteur</label>
+      <span>{% if dispensation.prescription.medecin %}Dr. {{ dispensation.prescription.medecin.get_full_name|default:dispensation.prescription.medecin.username }}{% else %}—{% endif %}</span>
+    </div>
+    <div class="cc-dl-item">
+      <label>Pharmacien</label>
+      <span>{% if dispensation.pharmacien %}{{ dispensation.pharmacien.get_full_name|default:dispensation.pharmacien.username }}{% else %}—{% endif %}</span>
+    </div>
+    <div class="cc-dl-item">
+      <label>Période</label>
+      <span>{{ dispensation.periode|date:"m/Y"|default:"—" }}</span>
+    </div>
+    <div class="cc-dl-item">
+      <label>Date de dispensation</label>
+      <span>{{ dispensation.date|date:"d/m/Y à H:i" }}</span>
+    </div>
+    <div class="cc-dl-item">
+      <label>Maladie chronique</label>
+      <span>{{ dispensation.prescription.maladie|default:"—" }}</span>
+    </div>
+  </div>
+</div>
+
+<!-- Médicaments délivrés -->
+<div class="cc-card">
+  <h3 style="font-size:14px;font-weight:700;margin:0 0 14px;color:#1C2833;">Médicaments délivrés</h3>
+  {% if dispensation.items.all %}
+  <table class="cc-table">
+    <thead>
+      <tr><th>Médicament</th><th>Lot</th><th>Quantité délivrée</th></tr>
+    </thead>
+    <tbody>
+      {% for item in dispensation.items.all %}
+      <tr>
+        <td>{{ item.medication.nom }}</td>
+        <td>{{ item.lot.numero_lot|default:"—" }}</td>
+        <td>{{ item.quantite }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p style="color:#A0AEC0;margin:0;">Aucun médicament enregistré.</p>
+  {% endif %}
+</div>
+
+<!-- Mouvements de stock -->
+{% if dispensation.mouvements.all %}
+<div class="cc-card">
+  <h3 style="font-size:14px;font-weight:700;margin:0 0 14px;color:#1C2833;">Mouvements de stock</h3>
+  <table class="cc-table">
+    <thead>
+      <tr><th>Lot</th><th>Médicament</th><th>Quantité</th><th>Référence</th></tr>
+    </thead>
+    <tbody>
+      {% for mv in dispensation.mouvements.all %}
+      <tr>
+        <td>{{ mv.lot.numero_lot }}</td>
+        <td>{{ mv.lot.medication.nom }}</td>
+        <td style="color:{% if mv.quantite < 0 %}#791F1F{% else %}#085041{% endif %};">
+          {% if mv.quantite > 0 %}+{% endif %}{{ mv.quantite }}
+        </td>
+        <td>{{ mv.reference|default:"—" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+<!-- Actions -->
+<div style="display:flex;gap:10px;flex-wrap:wrap;">
+  <a href="{% url 'dispensation-pdf' dispensation.pk %}" class="btn-cc btn-purple">
+    <i class="ti ti-file-text"></i> Télécharger reçu PDF
+  </a>
+  <a href="{% url 'dispensation-list' %}" class="btn-cc btn-secondary">
+    <i class="ti ti-arrow-left"></i> Retour à la liste
+  </a>
+</div>
+
+{% endblock %}

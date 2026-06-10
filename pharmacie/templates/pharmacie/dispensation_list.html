@@ -1,0 +1,53 @@
+{% extends "core/base.html" %}
+{% block title %}Dispensations — ChroniCare{% endblock %}
+{% block page_title %}Dispensations{% endblock %}
+
+{% block extra_css %}
+<style>
+  .cc-card { background:#fff; border:1px solid rgba(0,0,0,.07); border-radius:12px; overflow:hidden; margin-bottom:16px; }
+  .cc-card-header { padding:14px 18px; border-bottom:1px solid rgba(0,0,0,.06); display:flex; align-items:center; justify-content:space-between; }
+  .cc-card-title { font-size:14px; font-weight:600; color:#1C2833; display:flex; align-items:center; gap:8px; margin:0; }
+  .cc-card-title i { font-size:17px; color:#6B46C1; }
+  table.cc-table { width:100%; border-collapse:collapse; font-size:13px; }
+  table.cc-table th { padding:8px 14px; text-align:left; font-size:11px; font-weight:700; color:#A0AEC0; text-transform:uppercase; }
+  table.cc-table td { padding:10px 14px; border-bottom:1px solid rgba(0,0,0,.04); vertical-align:middle; }
+  table.cc-table tbody tr:hover { background:#F9F6FF; }
+  .btn-cc { display:inline-flex; align-items:center; gap:5px; padding:6px 12px; border-radius:8px; font-size:12px; font-weight:600; text-decoration:none; border:none; cursor:pointer; transition:.15s; }
+  .btn-secondary { background:#fff; border:1px solid rgba(0,0,0,.12); color:#4A5568; }
+  .btn-secondary:hover { background:#F4F9FC; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="cc-card">
+  <div class="cc-card-header">
+    <h3 class="cc-card-title"><i class="ti ti-package"></i> Dispensations</h3>
+    <a href="{% url 'pharmacie-dashboard' %}" class="btn-cc btn-secondary"><i class="ti ti-arrow-left"></i> Retour</a>
+  </div>
+  <table class="cc-table">
+    <thead>
+      <tr><th>Patient</th><th>Médecin</th><th>Pharmacien</th><th>Période</th><th>Date</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for d in dispensations %}
+      <tr>
+        <td>{{ d.prescription.patient.nom }} {{ d.prescription.patient.prenom }}</td>
+        <td>{% if d.prescription.medecin %}Dr. {{ d.prescription.medecin.get_full_name|default:d.prescription.medecin.username }}{% else %}—{% endif %}</td>
+        <td>{% if d.pharmacien %}{{ d.pharmacien.get_full_name|default:d.pharmacien.username }}{% else %}—{% endif %}</td>
+        <td>{{ d.periode|date:"m/Y"|default:"—" }}</td>
+        <td>{{ d.date|date:"d/m/Y H:i" }}</td>
+        <td>
+          <a href="{% url 'dispensation-detail' d.id %}" class="btn-cc btn-secondary">
+            <i class="ti ti-eye"></i> Voir
+          </a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="6" style="text-align:center;color:#A0AEC0;padding:24px;">Aucune dispensation enregistrée</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

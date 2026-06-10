@@ -1,0 +1,107 @@
+{% extends 'core/base.html' %}
+{% block title %}{% if maladie %}Modifier{% else %}Nouvelle{% endif %} maladie — ChroniCare{% endblock %}
+
+{% block extra_css %}
+<style>
+  .cc-form-wrap { max-width:680px; }
+
+  .cc-form-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; flex-wrap:wrap; gap:10px; }
+  .cc-form-header h1 { font-size:20px; font-weight:700; color:#1C2833; margin:0; display:flex; align-items:center; gap:8px; }
+  .cc-form-header h1 i { color:#0F6E56; }
+
+  .cc-section { background:#fff; border:1px solid rgba(0,0,0,.07); border-radius:12px; overflow:hidden; margin-bottom:16px; }
+  .cc-section-header { padding:14px 20px; border-bottom:1px solid rgba(0,0,0,.06); display:flex; align-items:center; gap:8px; }
+  .cc-section-header h3 { font-size:14px; font-weight:600; color:#1C2833; margin:0; }
+  .cc-section-header i { font-size:17px; color:#0F6E56; }
+  .cc-section-body { padding:20px; }
+
+  .cc-field { display:flex; flex-direction:column; gap:5px; margin-bottom:14px; }
+  .cc-field:last-child { margin-bottom:0; }
+  .cc-field label { font-size:12px; font-weight:600; color:#4A5568; }
+  .cc-field input, .cc-field select, .cc-field textarea {
+    width:100%; padding:9px 12px; border:1px solid #E2E8F0; border-radius:8px;
+    font-size:13px; background:#FAFBFC; color:#1C2833; outline:none;
+    transition:border-color .15s, box-shadow .15s; resize:vertical;
+  }
+  .cc-field input:focus, .cc-field select:focus, .cc-field textarea:focus {
+    border-color:#0F6E56; box-shadow:0 0 0 3px rgba(15,110,86,.1); background:#fff;
+  }
+  .cc-field-error { font-size:11px; color:#C53030; margin-top:2px; }
+
+  .cc-form-errors { background:#FCEBEB; border:1px solid #F0D5D5; border-radius:9px; padding:12px 16px; margin-bottom:16px; font-size:13px; color:#791F1F; }
+  .cc-form-errors ul { margin:6px 0 0 16px; padding:0; }
+
+  .cc-form-footer { display:flex; gap:10px; flex-wrap:wrap; }
+  .btn-submit { background:#0F6E56; color:#fff; border:none; padding:10px 22px; border-radius:9px; font-size:13px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:7px; transition:.14s; }
+  .btn-submit:hover { background:#085041; }
+  .btn-back { background:#F4F9FC; color:#4A5568; border:1px solid rgba(0,0,0,.08); padding:10px 22px; border-radius:9px; font-size:13px; font-weight:600; text-decoration:none; display:inline-flex; align-items:center; gap:7px; }
+  .btn-back:hover { background:#E8EEF2; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="cc-form-wrap">
+
+  <div class="cc-form-header">
+    <h1>
+      <i class="ti ti-{% if maladie %}edit{% else %}plus{% endif %}"></i>
+      {% if maladie %}Modifier : {{ maladie.nom }}{% else %}Nouvelle maladie{% endif %}
+    </h1>
+  </div>
+
+  {% if form.errors %}
+    <div class="cc-form-errors">
+      <strong>Erreurs à corriger :</strong>
+      <ul>
+        {% for field in form %}{% for e in field.errors %}<li><strong>{{ field.label }} :</strong> {{ e }}</li>{% endfor %}{% endfor %}
+        {% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  <form method="POST" novalidate>
+    {% csrf_token %}
+
+    <div class="cc-section">
+      <div class="cc-section-header">
+        <i class="ti ti-virus"></i><h3>Identification</h3>
+      </div>
+      <div class="cc-section-body">
+        <div class="cc-field">
+          <label for="{{ form.nom.id_for_label }}">Nom de la maladie <span style="color:#C53030;">*</span></label>
+          {{ form.nom }}
+          {% if form.nom.errors %}<span class="cc-field-error">{{ form.nom.errors|join:" " }}</span>{% endif %}
+        </div>
+        <div class="cc-field">
+          <label for="{{ form.type.id_for_label }}">Type <span style="color:#C53030;">*</span></label>
+          {{ form.type }}
+          {% if form.type.errors %}<span class="cc-field-error">{{ form.type.errors|join:" " }}</span>{% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="cc-section">
+      <div class="cc-section-header">
+        <i class="ti ti-notes"></i><h3>Description</h3>
+      </div>
+      <div class="cc-section-body">
+        <div class="cc-field">
+          <label for="{{ form.description.id_for_label }}">Description clinique</label>
+          {{ form.description }}
+          <span style="font-size:11px;color:#A0AEC0;">Symptômes, caractéristiques, informations utiles pour le suivi.</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="cc-form-footer">
+      <button type="submit" class="btn-submit">
+        <i class="ti ti-device-floppy"></i>
+        {% if maladie %}Enregistrer les modifications{% else %}Créer la maladie{% endif %}
+      </button>
+      <a href="{% url 'maladie-list' %}" class="btn-back">
+        <i class="ti ti-arrow-left"></i> Annuler
+      </a>
+    </div>
+  </form>
+</div>
+{% endblock %}

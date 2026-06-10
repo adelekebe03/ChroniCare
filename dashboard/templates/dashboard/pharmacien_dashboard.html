@@ -1,0 +1,177 @@
+{% extends 'core/base.html' %}
+{% block title %}Espace Pharmacien — ChroniCare{% endblock %}
+{% block page_title %}Tableau de bord Pharmacien{% endblock %}
+
+{% block extra_css %}
+<style>
+  .role-banner { background: linear-gradient(135deg, #4A2E7B, #6B46C1); color:#fff; padding:22px 26px; border-radius:14px; margin-bottom:22px; display:flex; align-items:center; gap:18px; }
+  .role-banner .icon { width:56px; height:56px; border-radius:14px; background:rgba(255,255,255,.18); display:flex; align-items:center; justify-content:center; }
+  .role-banner .icon i { font-size:30px; color:#D6BCFA; }
+  .role-banner h1 { font-size:22px; font-weight:700; margin:0 0 4px; }
+  .role-banner p  { font-size:13px; margin:0; color:rgba(255,255,255,.85); }
+
+  .stat-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:14px; margin-bottom:22px; }
+  .stat-card { background:#fff; border:1px solid rgba(0,0,0,.07); border-radius:12px; padding:16px; }
+  .stat-card .top { display:flex; align-items:center; justify-content:space-between; }
+  .stat-card .ico { width:36px; height:36px; border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:19px; }
+  .stat-card .val { font-size:26px; font-weight:700; margin-top:8px; color:#1C2833; }
+  .stat-card .lbl { font-size:12px; color:#717D7E; }
+  .ico-purp { background:#EDE7F6; color:#4A2E7B; }
+  .ico-teal { background:#E1F5EE; color:#085041; }
+  .ico-amber{ background:#FAEEDA; color:#633806; }
+  .ico-red  { background:#FCEBEB; color:#791F1F; }
+
+  .quick-actions { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; margin-bottom:22px; }
+  .qa { background:#fff; border:1px solid rgba(0,0,0,.07); border-radius:10px; padding:14px; text-align:center; text-decoration:none; color:#1C2833; transition:.15s; }
+  .qa:hover { border-color:#6B46C1; transform:translateY(-1px); color:#4A2E7B; }
+  .qa i { font-size:22px; color:#6B46C1; display:block; margin-bottom:6px; }
+
+  table.cc-table { width:100%; border-collapse:collapse; font-size:13px; }
+  table.cc-table th { padding:8px 12px; text-align:left; font-size:11px; font-weight:700; color:#A0AEC0; text-transform:uppercase; }
+  table.cc-table td { padding:10px 12px; border-bottom:1px solid rgba(0,0,0,.04); }
+  table.cc-table tbody tr:hover { background:#F4F9FC; }
+
+  .badge-attente  { display:inline-flex; font-size:11px; font-weight:600; padding:3px 9px; border-radius:20px; background:#FAEEDA; color:#633806; }
+  .badge-delivree { background:#E1F5EE; color:#085041; }
+  .badge-critique { background:#FCEBEB; color:#791F1F; }
+
+  .cc-acc { border:1px solid rgba(0,0,0,.07); border-radius:12px; overflow:hidden; margin-bottom:12px; }
+  .cc-acc-btn { width:100%; display:flex; align-items:center; gap:10px; padding:14px 18px; background:#fff; border:none; cursor:pointer; font-size:14px; font-weight:600; color:#1C2833; text-align:left; transition:background .15s; }
+  .cc-acc-btn:hover, .cc-acc-btn.open { background:#F9FAFB; }
+  .cc-acc-btn .acc-left { display:flex; align-items:center; gap:8px; flex:1; }
+  .cc-acc-btn .acc-left i { font-size:17px; color:#6B46C1; }
+  .cc-acc-btn .acc-left i.red-ico { color:#791F1F; }
+  .cc-acc-btn .acc-count { font-size:11px; font-weight:700; padding:2px 8px; border-radius:20px; background:#F3F4F6; color:#4A5568; }
+  .cc-acc-btn .acc-count.red { background:#FCEBEB; color:#791F1F; }
+  .cc-acc-btn .acc-chevron { font-size:16px; color:#A0AEC0; transition:transform .2s; flex-shrink:0; }
+  .cc-acc-btn .acc-link { font-size:12px; font-weight:500; text-decoration:none; color:#6B46C1; flex-shrink:0; }
+  .cc-acc-btn.open .acc-chevron { transform:rotate(180deg); }
+  .cc-acc-body { display:none; border-top:1px solid rgba(0,0,0,.06); }
+  .cc-acc-body.open { display:block; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="role-banner">
+  <div class="icon"><i class="ti ti-pill"></i></div>
+  <div>
+    <h1>Espace Pharmacien</h1>
+    <p>Bonjour {{ request.user.get_full_name|default:request.user.username }} — Gérez les prescriptions, le stock et les délivrances.</p>
+  </div>
+</div>
+
+<div class="quick-actions">
+  <a href="{% url 'prescription-list' %}" class="qa"><i class="ti ti-prescription"></i> Prescriptions</a>
+  <a href="{% url 'medication-list' %}" class="qa"><i class="ti ti-pill"></i> Stock</a>
+  <a href="{% url 'dispensation-list' %}" class="qa"><i class="ti ti-package"></i> Délivrances</a>
+  <a href="{% url 'add-lot' %}" class="qa"><i class="ti ti-plus"></i> Ajouter un lot</a>
+</div>
+
+<div class="stat-grid">
+  <div class="stat-card">
+    <div class="top"><span class="lbl">Prescriptions en attente</span><div class="ico ico-amber"><i class="ti ti-prescription"></i></div></div>
+    <div class="val">{{ prescriptions_count }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="top"><span class="lbl">Médicaments</span><div class="ico ico-purp"><i class="ti ti-pill"></i></div></div>
+    <div class="val">{{ medications_count }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="top"><span class="lbl">Délivrances totales</span><div class="ico ico-teal"><i class="ti ti-package"></i></div></div>
+    <div class="val">{{ dispensations_count }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="top"><span class="lbl">Stock critique</span><div class="ico ico-red"><i class="ti ti-alert-triangle"></i></div></div>
+    <div class="val">{{ stock_critique_count }}</div>
+  </div>
+</div>
+
+{# ── Prescriptions à délivrer (accordéon) ────────────────────── #}
+<div class="cc-acc">
+  <button class="cc-acc-btn" onclick="accToggle(this)">
+    <span class="acc-left"><i class="ti ti-prescription"></i> Prescriptions à délivrer <span class="acc-count">{{ prescriptions_en_attente|length }}</span></span>
+    <a href="{% url 'prescription-list' %}" class="acc-link" onclick="event.stopPropagation()">Voir toutes →</a>
+    <i class="ti ti-chevron-down acc-chevron"></i>
+  </button>
+  <div class="cc-acc-body">
+    <table class="cc-table">
+      <thead><tr><th>Patient</th><th>Médecin</th><th>Date</th><th>Statut</th><th></th></tr></thead>
+      <tbody>
+        {% for p in prescriptions_en_attente %}
+          <tr>
+            <td>{{ p.patient }}</td>
+            <td>{{ p.medecin.get_full_name|default:"—" }}</td>
+            <td>{{ p.date|date:"d/m/Y" }}</td>
+            <td><span class="badge-attente">En attente</span></td>
+            <td><a href="{% url 'prescription-detail' p.pk %}" style="color:#6B46C1;font-weight:500;text-decoration:none;font-size:12px;">Détails →</a></td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="5" style="text-align:center;color:#A0AEC0;padding:20px;">Aucune prescription en attente</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{# ── Stock critique (accordéon, affiché seulement si stock_critique) ── #}
+{% if stock_critique %}
+<div class="cc-acc">
+  <button class="cc-acc-btn" onclick="accToggle(this)">
+    <span class="acc-left"><i class="ti ti-alert-triangle red-ico"></i> <span style="color:#791F1F;">Stock critique</span> <span class="acc-count red">{{ stock_critique|length }}</span></span>
+    <a href="{% url 'medication-list' %}" class="acc-link" style="color:#791F1F;" onclick="event.stopPropagation()">Gérer le stock →</a>
+    <i class="ti ti-chevron-down acc-chevron"></i>
+  </button>
+  <div class="cc-acc-body">
+    <table class="cc-table">
+      <thead><tr><th>Médicament</th><th>Stock actuel</th><th>Seuil minimum</th></tr></thead>
+      <tbody>
+        {% for m in stock_critique %}
+          <tr>
+            <td>{{ m.nom }}</td>
+            <td><span class="badge-critique">{{ m.stock_total }}</span></td>
+            <td>{{ m.stock_minimum }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{# ── Délivrances récentes (accordéon) ────────────────────────── #}
+<div class="cc-acc">
+  <button class="cc-acc-btn" onclick="accToggle(this)">
+    <span class="acc-left"><i class="ti ti-package"></i> Délivrances récentes <span class="acc-count">{{ dispensations_recentes|length }}</span></span>
+    <a href="{% url 'dispensation-list' %}" class="acc-link" onclick="event.stopPropagation()">Voir toutes →</a>
+    <i class="ti ti-chevron-down acc-chevron"></i>
+  </button>
+  <div class="cc-acc-body">
+    <table class="cc-table">
+      <thead><tr><th>Patient</th><th>Date</th><th>Pharmacien</th><th></th></tr></thead>
+      <tbody>
+        {% for d in dispensations_recentes %}
+          <tr>
+            <td>{{ d.prescription.patient }}</td>
+            <td>{{ d.date|date:"d/m/Y H:i" }}</td>
+            <td>{{ d.pharmacien.get_full_name|default:"—" }}</td>
+            <td><a href="{% url 'dispensation-detail' d.pk %}" style="color:#6B46C1;font-weight:500;text-decoration:none;font-size:12px;">Détails →</a></td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="4" style="text-align:center;color:#A0AEC0;padding:20px;">Aucune délivrance récente</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function accToggle(btn) {
+  const body = btn.nextElementSibling;
+  const isOpen = btn.classList.contains('open');
+  btn.classList.toggle('open', !isOpen);
+  body.classList.toggle('open', !isOpen);
+}
+</script>
+{% endblock %}

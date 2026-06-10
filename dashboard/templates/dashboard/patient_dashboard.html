@@ -1,0 +1,438 @@
+{% extends 'core/base.html' %}
+{% block title %}Mon espace — ChroniCare{% endblock %}
+{% block page_title %}Mon espace Patient{% endblock %}
+
+{% block extra_css %}
+<style>
+
+  /* ── Variables patient ── */
+  :root {
+    --p-amber:     #B47129;
+    --p-amber-dk:  #7C4A0F;
+    --p-amber-lt:  #FEF3E7;
+    --p-teal:      #0F6E56;
+    --p-teal-lt:   #E0F5EE;
+    --p-red-lt:    #FDECEA;
+    --p-red:       #C0392B;
+    --p-blue-lt:   #EAF2FF;
+    --p-blue:      #1A60C8;
+    --p-card-bg:   #FFFFFF;
+    --p-bg:        #F5F7FA;
+    --p-border:    rgba(0,0,0,.07);
+    --p-text:      #1A2535;
+    --p-muted:     #6B7D8F;
+  }
+
+  .p-page { display: flex; flex-direction: column; gap: 22px; }
+
+  /* ── Bannière de bienvenue ── */
+  .p-banner {
+    border-radius: 18px; overflow: hidden;
+    background: linear-gradient(135deg, #7C4A0F 0%, #B47129 45%, #D4892E 100%);
+    padding: 28px 30px;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 20px; flex-wrap: wrap;
+    position: relative;
+  }
+  .p-banner::before {
+    content: '';
+    position: absolute; right: -60px; top: -60px;
+    width: 220px; height: 220px; border-radius: 50%;
+    background: rgba(255,255,255,.07);
+  }
+  .p-banner::after {
+    content: '';
+    position: absolute; right: 60px; bottom: -40px;
+    width: 140px; height: 140px; border-radius: 50%;
+    background: rgba(255,255,255,.05);
+  }
+  .p-banner-left { display: flex; align-items: center; gap: 18px; position: relative; z-index: 1; }
+  .p-banner-avatar {
+    width: 62px; height: 62px; border-radius: 18px;
+    background: rgba(255,255,255,.2);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 4px 16px rgba(0,0,0,.2);
+  }
+  .p-banner-avatar i { font-size: 32px; color: rgba(255,255,255,.9); }
+  .p-banner-text h1 { font-size: 22px; font-weight: 800; color: #fff; margin-bottom: 4px; }
+  .p-banner-text p  { font-size: 13px; color: rgba(255,255,255,.8); line-height: 1.5; margin: 0; max-width: 400px; }
+  .p-banner-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 14px; border-radius: 20px;
+    background: rgba(255,255,255,.18); color: #fff;
+    font-size: 11px; font-weight: 700; letter-spacing: .5px;
+    flex-shrink: 0; position: relative; z-index: 1;
+  }
+  .p-banner-badge i { font-size: 14px; }
+
+  /* ── Alerte profil non lié ── */
+  .p-no-profil {
+    background: #FEF8EE;
+    border: 1px solid #F5DDA8;
+    border-left: 4px solid var(--p-amber);
+    border-radius: 12px; padding: 14px 18px;
+    display: flex; align-items: flex-start; gap: 12px;
+    font-size: 13px; color: #6B3A06;
+  }
+  .p-no-profil i { font-size: 20px; color: var(--p-amber); flex-shrink: 0; margin-top: 1px; }
+  .p-no-profil strong { display: block; font-weight: 700; margin-bottom: 2px; }
+
+  /* ── KPI Cards ── */
+  .p-kpi-row {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;
+  }
+  .p-kpi {
+    background: var(--p-card-bg);
+    border: 1px solid var(--p-border);
+    border-radius: 14px; padding: 18px 20px;
+    display: flex; align-items: center; gap: 16px;
+    transition: transform .15s, box-shadow .15s;
+  }
+  .p-kpi:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,.06); }
+  .p-kpi-ico {
+    width: 48px; height: 48px; border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .p-kpi-ico i { font-size: 24px; }
+  .p-kpi-num { font-size: 26px; font-weight: 800; color: var(--p-text); line-height: 1; margin-bottom: 3px; }
+  .p-kpi-label { font-size: 12px; color: var(--p-muted); font-weight: 500; }
+
+  .p-kpi.kpi-rdv .p-kpi-ico   { background: var(--p-teal-lt); }
+  .p-kpi.kpi-rdv .p-kpi-ico i { color: var(--p-teal); }
+  .p-kpi.kpi-rdv .p-kpi-num   { color: var(--p-teal); }
+
+  .p-kpi.kpi-alert .p-kpi-ico   { background: var(--p-red-lt); }
+  .p-kpi.kpi-alert .p-kpi-ico i { color: var(--p-red); }
+  .p-kpi.kpi-alert .p-kpi-num   { color: var(--p-red); }
+
+  .p-kpi.kpi-med .p-kpi-ico   { background: var(--p-blue-lt); }
+  .p-kpi.kpi-med .p-kpi-ico i { color: var(--p-blue); }
+  .p-kpi.kpi-med .p-kpi-num   { color: var(--p-blue); }
+
+  /* ── CTA Dossier médical ── */
+  .p-dossier {
+    background: linear-gradient(135deg, #0A4C38 0%, #0F6E56 60%, #1D9E75 100%);
+    border-radius: 16px; padding: 22px 26px;
+    display: flex; align-items: center; gap: 18px;
+    text-decoration: none; color: #fff;
+    transition: transform .15s, box-shadow .15s;
+    position: relative; overflow: hidden;
+  }
+  .p-dossier::after {
+    content: '';
+    position: absolute; right: -30px; top: -30px;
+    width: 150px; height: 150px; border-radius: 50%;
+    background: rgba(255,255,255,.07);
+  }
+  .p-dossier:hover { transform: translateY(-3px); box-shadow: 0 10px 32px rgba(10,76,56,.3); color: #fff; }
+  .p-dossier-ico {
+    width: 54px; height: 54px; border-radius: 15px;
+    background: rgba(255,255,255,.18);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .p-dossier-ico i { font-size: 28px; color: rgba(255,255,255,.9); }
+  .p-dossier-text h3 { font-size: 16px; font-weight: 800; margin: 0 0 4px; }
+  .p-dossier-text p  { font-size: 12px; color: rgba(255,255,255,.75); margin: 0; line-height: 1.5; }
+  .p-dossier-arrow { margin-left: auto; font-size: 24px; opacity: .7; flex-shrink: 0; position: relative; z-index: 1; }
+
+  /* ── Actions rapides ── */
+  .p-actions {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px;
+  }
+  .p-action {
+    background: var(--p-card-bg);
+    border: 1.5px solid var(--p-border);
+    border-radius: 14px; padding: 18px 12px;
+    text-align: center; text-decoration: none; color: var(--p-text);
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+    transition: border-color .2s, transform .15s, background .2s;
+  }
+  .p-action:hover {
+    border-color: var(--p-teal);
+    transform: translateY(-2px);
+    background: var(--p-teal-lt);
+    color: var(--p-teal);
+  }
+  .p-action-ico {
+    width: 44px; height: 44px; border-radius: 13px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .p-action-ico i { font-size: 22px; }
+  .p-action span { font-size: 12px; font-weight: 600; }
+
+  .p-action.pa-primary {
+    border-color: var(--p-teal);
+    background: var(--p-teal-lt);
+    color: var(--p-teal);
+  }
+  .p-action.pa-primary:hover { background: #C5E8DA; }
+
+  /* ── Section titre ── */
+  .p-section-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .p-section-header h2 {
+    font-size: 15px; font-weight: 700; color: var(--p-text);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .p-section-header h2 i { font-size: 18px; }
+  .p-section-header a {
+    font-size: 12px; font-weight: 600; color: var(--p-teal);
+    text-decoration: none; display: flex; align-items: center; gap: 4px;
+  }
+  .p-section-header a:hover { text-decoration: underline; }
+
+  /* ── Liste rendez-vous ── */
+  .p-rdv-list { display: flex; flex-direction: column; gap: 10px; }
+  .p-rdv-card {
+    background: var(--p-card-bg);
+    border: 1px solid var(--p-border);
+    border-radius: 13px; padding: 14px 18px;
+    display: flex; align-items: center; gap: 16px;
+    transition: box-shadow .15s, border-color .15s;
+  }
+  .p-rdv-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.06); border-color: rgba(15,110,86,.2); }
+  .p-rdv-date {
+    min-width: 52px; text-align: center;
+    background: var(--p-teal-lt); border-radius: 11px; padding: 8px 6px;
+  }
+  .p-rdv-date .day  { font-size: 22px; font-weight: 800; color: var(--p-teal); line-height: 1; }
+  .p-rdv-date .mon  { font-size: 10px; font-weight: 700; color: var(--p-teal); text-transform: uppercase; letter-spacing: .5px; }
+  .p-rdv-info { flex: 1; min-width: 0; }
+  .p-rdv-info strong { display: block; font-size: 13px; font-weight: 700; color: var(--p-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .p-rdv-info span   { font-size: 11px; color: var(--p-muted); margin-top: 2px; display: block; }
+  .p-rdv-time {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 12px; font-weight: 600; color: var(--p-muted);
+    white-space: nowrap; flex-shrink: 0;
+  }
+  .p-rdv-time i { font-size: 14px; color: var(--p-amber); }
+
+  /* ── Liste alertes ── */
+  .p-alert-list { display: flex; flex-direction: column; gap: 10px; }
+  .p-alert-card {
+    background: var(--p-card-bg);
+    border: 1px solid var(--p-border);
+    border-left: 4px solid var(--p-red);
+    border-radius: 13px; padding: 13px 16px;
+    display: flex; align-items: flex-start; gap: 12px;
+    transition: box-shadow .15s;
+  }
+  .p-alert-card:hover { box-shadow: 0 4px 14px rgba(192,57,43,.08); }
+  .p-alert-ico {
+    width: 36px; height: 36px; border-radius: 10px;
+    background: var(--p-red-lt);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .p-alert-ico i { font-size: 18px; color: var(--p-red); }
+  .p-alert-body { flex: 1; min-width: 0; }
+  .p-alert-body strong { display: block; font-size: 13px; font-weight: 700; color: var(--p-text); margin-bottom: 2px; }
+  .p-alert-body span   { font-size: 11px; color: var(--p-muted); }
+  .p-alert-chip {
+    font-size: 10px; font-weight: 700; padding: 3px 9px; border-radius: 10px;
+    background: var(--p-red-lt); color: var(--p-red);
+    white-space: nowrap; flex-shrink: 0; align-self: flex-start; margin-top: 2px;
+  }
+
+  /* ── Empty states ── */
+  .p-empty {
+    text-align: center; padding: 32px 16px;
+    background: var(--p-card-bg); border: 1px solid var(--p-border);
+    border-radius: 13px;
+  }
+  .p-empty i { font-size: 36px; color: #D0DAE4; display: block; margin-bottom: 10px; }
+  .p-empty p { font-size: 13px; color: var(--p-muted); }
+
+  /* ── Layout 2 colonnes (sur desktop) ── */
+  .p-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+  .p-col {}
+
+  @media (max-width: 768px) {
+    .p-kpi-row { grid-template-columns: 1fr 1fr; }
+    .p-two-col { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 480px) {
+    .p-kpi-row { grid-template-columns: 1fr; }
+    .p-banner-text h1 { font-size: 18px; }
+    .p-actions { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="p-page">
+
+  <!-- ── Bannière bienvenue ── -->
+  <div class="p-banner">
+    <div class="p-banner-left">
+      <div class="p-banner-avatar">
+        <i class="ti ti-user-heart"></i>
+      </div>
+      <div class="p-banner-text">
+        <h1>Bonjour, {{ request.user.first_name|default:request.user.username }} 👋</h1>
+        <p>Bienvenue dans votre espace personnel ChroniCare. Votre santé, suivie en temps réel.</p>
+      </div>
+    </div>
+    <div class="p-banner-badge">
+      <i class="ti ti-heart-filled"></i>
+      Espace Patient
+    </div>
+  </div>
+
+  <!-- ── Alerte si profil non lié ── -->
+  {% if not profil %}
+  <div class="p-no-profil">
+    <i class="ti ti-alert-triangle"></i>
+    <div>
+      <strong>Dossier non lié</strong>
+      Votre compte n'est pas encore associé à un dossier patient.
+      Contactez votre administrateur ou votre médecin traitant.
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ── KPI Cards ── -->
+  <div class="p-kpi-row">
+    <div class="p-kpi kpi-rdv">
+      <div class="p-kpi-ico"><i class="ti ti-calendar-event"></i></div>
+      <div>
+        <div class="p-kpi-num">{{ my_appointments|length }}</div>
+        <div class="p-kpi-label">Prochains rendez-vous</div>
+      </div>
+    </div>
+    <div class="p-kpi kpi-alert">
+      <div class="p-kpi-ico"><i class="ti ti-alert-triangle"></i></div>
+      <div>
+        <div class="p-kpi-num">{{ my_alerts|length }}</div>
+        <div class="p-kpi-label">Alertes actives</div>
+      </div>
+    </div>
+    <div class="p-kpi kpi-med">
+      <div class="p-kpi-ico"><i class="ti ti-clipboard-text"></i></div>
+      <div>
+        <div class="p-kpi-num">{% if profil %}1{% else %}0{% endif %}</div>
+        <div class="p-kpi-label">Dossier médical</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── CTA Dossier médical ── -->
+  {% if profil %}
+  <a href="{% url 'dossier-medical' profil.id %}" class="p-dossier">
+    <div class="p-dossier-ico"><i class="ti ti-clipboard-text"></i></div>
+    <div class="p-dossier-text">
+      <h3>Mon dossier médical</h3>
+      <p>
+        Historique de suivis, maladies chroniques et indicateurs de santé.
+        {% if profil.medecin_traitant %}
+          Médecin traitant : Dr. {{ profil.medecin_traitant.get_full_name|default:profil.medecin_traitant.username }}
+        {% endif %}
+      </p>
+    </div>
+    <i class="ti ti-chevron-right p-dossier-arrow"></i>
+  </a>
+  {% endif %}
+
+  <!-- ── Actions rapides ── -->
+  <div class="p-actions">
+    <a href="{% url 'mes-rendez-vous' %}" class="p-action pa-primary">
+      <div class="p-action-ico" style="background:#C5E8DA;">
+        <i class="ti ti-calendar-event" style="color:#0F6E56;"></i>
+      </div>
+      <span>Mes rendez-vous</span>
+    </a>
+    <a href="{% url 'profile' %}" class="p-action">
+      <div class="p-action-ico" style="background:#EAF2FF;">
+        <i class="ti ti-user-circle" style="color:#1A60C8;"></i>
+      </div>
+      <span>Mon profil</span>
+    </a>
+    <a href="{% url 'notification-list' %}" class="p-action">
+      <div class="p-action-ico" style="background:#FEF3E7;">
+        <i class="ti ti-bell" style="color:#B47129;"></i>
+      </div>
+      <span>Notifications</span>
+    </a>
+    {% if profil %}
+    <a href="{% url 'patient-detail' profil.id %}" class="p-action">
+      <div class="p-action-ico" style="background:#F3EEFF;">
+        <i class="ti ti-id-badge" style="color:#6B46C1;"></i>
+      </div>
+      <span>Ma fiche patient</span>
+    </a>
+    {% endif %}
+  </div>
+
+  <!-- ── Deux colonnes : RDV + Alertes ── -->
+  <div class="p-two-col">
+
+    <!-- Rendez-vous -->
+    <div class="p-col">
+      <div class="p-section-header">
+        <h2><i class="ti ti-calendar-event" style="color:#0F6E56;"></i> Mes rendez-vous</h2>
+        <a href="{% url 'mes-rendez-vous' %}">Voir tous <i class="ti ti-arrow-right"></i></a>
+      </div>
+
+      {% if my_appointments %}
+      <div class="p-rdv-list">
+        {% for a in my_appointments %}
+        <div class="p-rdv-card">
+          <div class="p-rdv-date">
+            <div class="day">{{ a.date|date:"d" }}</div>
+            <div class="mon">{{ a.date|date:"M" }}</div>
+          </div>
+          <div class="p-rdv-info">
+            <strong>{{ a.motif|default:"Consultation"|truncatechars:45 }}</strong>
+            <span>
+              {% if a.doctor %}Dr. {{ a.doctor.get_full_name|default:a.doctor.username }}{% endif %}
+            </span>
+          </div>
+          <div class="p-rdv-time">
+            <i class="ti ti-clock"></i>
+            {{ a.heure|time:"H:i" }}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="p-empty">
+        <i class="ti ti-calendar-off"></i>
+        <p>Aucun rendez-vous programmé.</p>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Alertes -->
+    <div class="p-col">
+      <div class="p-section-header">
+        <h2><i class="ti ti-alert-triangle" style="color:#C0392B;"></i> Mes alertes</h2>
+      </div>
+
+      {% if my_alerts %}
+      <div class="p-alert-list">
+        {% for al in my_alerts %}
+        <div class="p-alert-card">
+          <div class="p-alert-ico"><i class="ti ti-alert-triangle"></i></div>
+          <div class="p-alert-body">
+            <strong>{{ al.message|truncatechars:55 }}</strong>
+            <span>{{ al.created_at|date:"d/m/Y" }}</span>
+          </div>
+          <span class="p-alert-chip">{{ al.get_alert_type_display }}</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="p-empty">
+        <i class="ti ti-circle-check" style="color:#C5E8DA;"></i>
+        <p>Aucune alerte active. Tout va bien !</p>
+      </div>
+      {% endif %}
+    </div>
+
+  </div>
+
+</div>
+{% endblock %}

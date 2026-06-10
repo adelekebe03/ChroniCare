@@ -1,0 +1,161 @@
+{% extends "core/base.html" %}
+{% block title %}Détail prescription — ChroniCare{% endblock %}
+{% block page_title %}Détail de la prescription{% endblock %}
+
+{% block extra_css %}
+<style>
+  .cc-card { background:#fff; border:1px solid rgba(0,0,0,.07); border-radius:12px; padding:22px; margin-bottom:16px; }
+  .cc-dl { display:grid; grid-template-columns:1fr 1fr; gap:12px 24px; }
+  @media(max-width:768px){ .cc-dl{ grid-template-columns:1fr; } }
+  .cc-dl-item label { display:block; font-size:11px; font-weight:700; color:#A0AEC0; text-transform:uppercase; margin-bottom:3px; }
+  .cc-dl-item span  { font-size:14px; color:#1C2833; }
+  .badge { display:inline-flex; font-size:11px; font-weight:600; padding:3px 9px; border-radius:20px; }
+  .b-attente  { background:#FAEEDA; color:#633806; }
+  .b-active   { background:#E1F5EE; color:#085041; }
+  .b-terminee { background:#E6F1FB; color:#0C447C; }
+  .b-annulee  { background:#FCEBEB; color:#791F1F; }
+  .b-urgent   { background:#FCEBEB; color:#791F1F; }
+  .b-rupture  { background:#FCEBEB; color:#791F1F; }
+  table.cc-table { width:100%; border-collapse:collapse; font-size:13px; }
+  table.cc-table th { padding:8px 12px; text-align:left; font-size:11px; font-weight:700; color:#A0AEC0; text-transform:uppercase; }
+  table.cc-table td { padding:10px 12px; border-bottom:1px solid rgba(0,0,0,.04); }
+  .btn-cc { display:inline-flex; align-items:center; gap:6px; padding:9px 16px; border-radius:9px; font-size:13px; font-weight:600; text-decoration:none; border:none; cursor:pointer; transition:.15s; }
+  .btn-primary   { background:#6B46C1; color:#fff; }
+  .btn-primary:hover   { background:#4A2E7B; color:#fff; }
+  .btn-secondary { background:#fff; border:1px solid rgba(0,0,0,.12); color:#4A5568; }
+  .btn-secondary:hover { background:#F4F9FC; }
+  .alert-rupture { background:#FCEBEB; border:1px solid #F5C6CB; border-radius:10px; padding:12px 16px; margin-bottom:16px; font-size:13px; color:#791F1F; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+{% if ruptures %}
+<div class="alert-rupture">
+  <strong><i class="ti ti-alert-triangle"></i> Stock insuffisant pour cette prescription :</strong>
+  <ul style="margin:6px 0 0;padding-left:18px;">
+    {% for r in ruptures %}
+    <li>{{ r.medication }} — requis : {{ r.requis }}, disponible : {{ r.disponible }}</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+<div class="cc-card">
+  <div class="cc-dl">
+    <div class="cc-dl-item">
+      <label>Patient</label>
+      <span>{{ prescription.patient.nom }} {{ prescription.patient.prenom }}</span>
+    </div>
+    <div class="cc-dl-item">
+      <label>Médecin prescripteur</label>
+      <span>{% if prescription.medecin %}Dr. {{ prescription.medecin.get_full_name|default:prescription.medecin.username }}{% else %}—{% endif %}</span>
+    </div>
+    <div class="cc-dl-item">
+      <label>Maladie chronique</label>
+      <span>{{ prescription.maladie|default:"—" }}</span>
+    </div>
+    <div class="cc-dl-item">
+      <label>Statut</label>
+      <span>
+        {% if prescription.statut == 'en_attente' %}<span class="badge b-attente">En attente</span>
+        {% elif prescription.statut == 'active' %}<span class="badge b-active">Active</span>
+        {% elif prescription.statut == 'terminee' %}<span class="badge b-terminee">Terminée</span>
+        {% elif prescription.statut == 'annulee' %}<span class="badge b-annulee">Annulée</span>
+        {% endif %}
+        {% if prescription.renouvellement_proche and prescription.statut != 'annulee' %}
+          <span class="badge b-urgent" style="margin-left:4px;">Renouvellement urgent</span>
+        {% endif %}
+      </span>
+    </div>
+    <div class="cc-dl-item">
+      <label>Fréquence de renouvellement</label>
+      <span>{{ prescription.get_duree_standard_display }}</span>
+    </div>
+    <div class="cc-dl-item">
+      <label>Prochain renouvellement</label>
+      <span>{{ prescription.date_prochain_renouvellement|date:"d/m/Y"|default:"—" }}</span>
+    </div>
+    <div class="cc-dl-item">
+      <label>Date de prescription</label>
+      <span>{{ prescription.date|date:"d/m/Y à H:i" }}</span>
+    </div>
+    <div class="cc-dl-item">
+      <label>Dispensations effectuées</label>
+      <span>{{ prescription.dispensations.count }}</span>
+    </div>
+  </div>
+</div>
+
+<!-- Médicaments -->
+<div class="cc-card">
+  <h3 style="font-size:14px;font-weight:700;margin:0 0 14px;color:#1C2833;">Médicaments prescrits</h3>
+  {% if prescription.items.all %}
+  <table class="cc-table">
+    <thead>
+      <tr><th>Médicament</th><th>Dosage</th><th>Fréquence</th><th>Quantité/dispensation</th><th>Stock dispo</th></tr>
+    </thead>
+    <tbody>
+      {% for item in prescription.items.all %}
+      <tr>
+        <td>{{ item.medication.nom }}</td>
+        <td>{{ item.dosage }}</td>
+        <td>{{ item.get_frequence_display }}</td>
+        <td>{{ item.quantite }}</td>
+        <td>
+          {% if item.medication.est_en_rupture %}
+            <span class="badge b-rupture">{{ item.medication.stock_total }} — Rupture</span>
+          {% else %}
+            {{ item.medication.stock_total }}
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p style="color:#A0AEC0;margin:0;">Aucun médicament ajouté.</p>
+  {% endif %}
+</div>
+
+<!-- Historique dispensations -->
+{% if prescription.dispensations.all %}
+<div class="cc-card">
+  <h3 style="font-size:14px;font-weight:700;margin:0 0 14px;color:#1C2833;">Historique des dispensations</h3>
+  <table class="cc-table">
+    <thead>
+      <tr><th>Période</th><th>Date</th><th>Pharmacien</th><th>Reçu PDF</th></tr>
+    </thead>
+    <tbody>
+      {% for d in prescription.dispensations.all %}
+      <tr>
+        <td>{{ d.periode|date:"m/Y"|default:"—" }}</td>
+        <td>{{ d.date|date:"d/m/Y H:i" }}</td>
+        <td>{% if d.pharmacien %}{{ d.pharmacien.get_full_name|default:d.pharmacien.username }}{% else %}—{% endif %}</td>
+        <td>
+          <a href="{% url 'dispensation-pdf' d.pk %}" class="btn-cc btn-secondary" style="font-size:11px;padding:5px 10px;">
+            <i class="ti ti-file-text"></i> PDF
+          </a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+<!-- Actions -->
+<div style="display:flex;gap:10px;flex-wrap:wrap;">
+  {% if request.user.role == 'pharmacist' or request.user.role == 'admin' %}
+    {% if prescription.statut != 'annulee' and prescription.statut != 'terminee' and not ruptures %}
+    <a href="{% url 'dispenser' prescription.id %}" class="btn-cc btn-primary">
+      <i class="ti ti-pill"></i> Dispenser ce traitement
+    </a>
+    {% endif %}
+  {% endif %}
+  <a href="{% url 'prescription-list' %}" class="btn-cc btn-secondary">
+    <i class="ti ti-arrow-left"></i> Retour à la liste
+  </a>
+</div>
+
+{% endblock %}
