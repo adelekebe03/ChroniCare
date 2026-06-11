@@ -4,23 +4,27 @@ services:
     name: chronicare
     env: python
     buildCommand: "./build.sh"
-    startCommand: "gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 2"
+    startCommand: "gunicorn ChroniCare.wsgi:application --bind 0.0.0.0:$PORT --workers 2"
     envVars:
       - key: DJANGO_SETTINGS_MODULE
-        value: config.settings.prod
+        value: ChroniCare.settings
       - key: SECRET_KEY
         generateValue: true
       - key: FERNET_KEY
         generateValue: true
+      - key: DEBUG
+        value: "False"
       - key: DATABASE_URL
         fromDatabase:
           name: chronicare-db
           property: connectionString
-      - key: REDIS_URL
+      - key: CELERY_BROKER_URL
         fromService:
           name: chronicare-redis
           type: redis
           property: connectionString
+      - key: CLOUDINARY_URL
+        sync: false
       - key: RENDER_EXTERNAL_HOSTNAME
         value: chronicare.onrender.com
 
@@ -29,34 +33,50 @@ services:
     name: chronicare-celery
     env: python
     buildCommand: "pip install -r requirements.txt"
-    startCommand: "celery -A config worker -l info"
+    startCommand: "celery -A ChroniCare worker -l info"
     envVars:
       - key: DJANGO_SETTINGS_MODULE
-        value: config.settings.prod
+        value: ChroniCare.settings
+      - key: SECRET_KEY
+        generateValue: true
+      - key: FERNET_KEY
+        generateValue: true
       - key: DATABASE_URL
         fromDatabase:
           name: chronicare-db
           property: connectionString
-      - key: REDIS_URL
+      - key: CELERY_BROKER_URL
         fromService:
           name: chronicare-redis
           type: redis
           property: connectionString
+      - key: CLOUDINARY_URL
+        sync: false
 
   # ── Celery Beat (tâches planifiées) ──
   - type: worker
     name: chronicare-beat
     env: python
     buildCommand: "pip install -r requirements.txt"
-    startCommand: "celery -A config beat -l info"
+    startCommand: "celery -A ChroniCare beat -l info"
     envVars:
       - key: DJANGO_SETTINGS_MODULE
-        value: config.settings.prod
-      - key: REDIS_URL
+        value: ChroniCare.settings
+      - key: SECRET_KEY
+        generateValue: true
+      - key: FERNET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: chronicare-db
+          property: connectionString
+      - key: CELERY_BROKER_URL
         fromService:
           name: chronicare-redis
           type: redis
           property: connectionString
+      - key: CLOUDINARY_URL
+        sync: false
 
 databases:
   # ── PostgreSQL ──

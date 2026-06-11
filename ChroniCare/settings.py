@@ -30,6 +30,15 @@ DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
+# Render expose ce nom DNS public — on l'ajoute automatiquement en prod.
+_render_host = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
+if _render_host:
+    ALLOWED_HOSTS.append(_render_host)
+
+CSRF_TRUSTED_ORIGINS = [
+    f"https://{h}" for h in ALLOWED_HOSTS if h not in ('localhost', '127.0.0.1')
+]
+
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -53,6 +62,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -83,16 +93,24 @@ WSGI_APPLICATION = 'ChroniCare.wsgi.application'
 
 
 # --- Base de données ---
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.environ.get('DB_NAME', 'chronicare_db'),
-        'USER': os.environ.get('DB_USER', 'postgres'),
-        'PASSWORD': os.environ.get('DB_PASSWORD', ''),
-        'HOST': os.environ.get('DB_HOST', 'localhost'),
-        'PORT': os.environ.get('DB_PORT', '5432'),
+# En prod (Render) : utilise DATABASE_URL (Postgres managé).
+# En local : utilise les variables DB_* avec fallback Postgres.
+import dj_database_url
+
+_database_url = os.environ.get('DATABASE_URL')
+if _database_url:
+    DATABASES = {'default': dj_database_url.config(default=_database_url, conn_max_age=600)}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.environ.get('DB_NAME', 'chronicare_db'),
+            'USER': os.environ.get('DB_USER', 'postgres'),
+            'PASSWORD': os.environ.get('DB_PASSWORD', ''),
+            'HOST': os.environ.get('DB_HOST', 'localhost'),
+            'PORT': os.environ.get('DB_PORT', '5432'),
+        }
     }
-}
 
 
 AUTH_PASSWORD_VALIDATORS = [
@@ -101,12 +119,6 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
-
-import dj_database_url
-
-DATABASES = {
-    'default': dj_database_url.config(default=os.environ.get("DATABASE_URL"))
-}
 
 LANGUAGE_CODE = 'fr-fr'
 TIME_ZONE = 'Africa/Conakry'
@@ -139,11 +151,41 @@ DEFAULT_FROM_EMAIL = f'ChroniCare <{_email_user}>' if _email_user else 'ChroniCa
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [BASE_DIR / 'static']
+# WhiteNoise : compression + cache busting via manifest
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+# --- Sécurité en production (activé seulement quand DEBUG=False) ---
+if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = 60 * 60 * 24 * 30  # 30 jours
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+
+
+# --- Fernet (django-fernet-fields) ---
+_fernet_key = os.environ.get('FERNET_KEY')
+if _fernet_key:
+    FERNET_KEYS = [_fernet_key]
+
+
+# --- Médias : Cloudinary en prod, filesystem en local ---
+# Format CLOUDINARY_URL : cloudinary://API_KEY:API_SECRET@CLOUD_NAME
+# Si absent → on garde MEDIA_ROOT local (dev).
+_cloudinary_url = os.environ.get('CLOUDINARY_URL')
+if _cloudinary_url:
+    INSTALLED_APPS = [*INSTALLED_APPS, 'cloudinary', 'cloudinary_storage']
+    CLOUDINARY_STORAGE = {'CLOUDINARY_URL': _cloudinary_url}
+    DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
 
 REST_FRAMEWORK = {

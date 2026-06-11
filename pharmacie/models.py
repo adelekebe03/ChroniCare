@@ -36,6 +36,14 @@ class Medication(models.Model):
         )
 
     @property
+    def lots_actifs_count(self):
+        """Nombre de lots non expirés ET avec quantité > 0."""
+        return self.lots.filter(
+            date_expiration__gt=timezone.now().date(),
+            quantite__gt=0,
+        ).count()
+
+    @property
     def est_en_rupture(self):
         return self.stock_total <= self.stock_minimum
 

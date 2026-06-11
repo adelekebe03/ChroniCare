@@ -175,7 +175,9 @@
             {% endif %}
           </td>
           <td>
-            <span class="badge b-lot">{{ med.lots.count }} lot{{ med.lots.count|pluralize }}</span>
+            {% with actifs=med.lots_actifs_count %}
+              <span class="badge b-lot">{{ actifs }} lot{{ actifs|pluralize }}</span>
+            {% endwith %}
           </td>
           <td style="color:#717D7E;">{{ med.stock_minimum }}</td>
           <td>
