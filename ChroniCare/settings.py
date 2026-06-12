@@ -35,8 +35,14 @@ _render_host = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
 if _render_host:
     ALLOWED_HOSTS.append(_render_host)
 
+# Filet de sécurité : accepte tout sous-domaine *.onrender.com
+# (au cas où le hostname réel diffère de RENDER_EXTERNAL_HOSTNAME)
+if '.onrender.com' not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append('.onrender.com')
+
 CSRF_TRUSTED_ORIGINS = [
-    f"https://{h}" for h in ALLOWED_HOSTS if h not in ('localhost', '127.0.0.1')
+    f"https://*{h}" if h.startswith('.') else f"https://{h}"
+    for h in ALLOWED_HOSTS if h not in ('localhost', '127.0.0.1')
 ]
 
 
