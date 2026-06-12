@@ -30,15 +30,20 @@ DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
-# Render expose ce nom DNS public — on l'ajoute automatiquement en prod.
+# Render expose RENDER_EXTERNAL_HOSTNAME en prod.
 _render_host = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
 if _render_host:
     ALLOWED_HOSTS.append(_render_host)
 
-# Filet de sécurité : accepte tout sous-domaine *.onrender.com
-# (au cas où le hostname réel diffère de RENDER_EXTERNAL_HOSTNAME)
-if '.onrender.com' not in ALLOWED_HOSTS:
-    ALLOWED_HOSTS.append('.onrender.com')
+# Railway expose RAILWAY_PUBLIC_DOMAIN en prod.
+_railway_host = os.environ.get('RAILWAY_PUBLIC_DOMAIN')
+if _railway_host:
+    ALLOWED_HOSTS.append(_railway_host)
+
+# Filets de sécurité : accepte tout sous-domaine des PaaS supportés.
+for _wildcard in ('.onrender.com', '.railway.app', '.up.railway.app'):
+    if _wildcard not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(_wildcard)
 
 CSRF_TRUSTED_ORIGINS = [
     f"https://*{h}" if h.startswith('.') else f"https://{h}"
@@ -212,8 +217,14 @@ SIMPLE_JWT = {
 
 
 # --- Celery ---
-CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'redis://127.0.0.1:6379/0')
-CELERY_RESULT_BACKEND = os.environ.get('CELERY_BROKER_URL', 'redis://127.0.0.1:6379/0')
+# Railway expose REDIS_URL, Render expose CELERY_BROKER_URL via fromService.
+_redis_url = (
+    os.environ.get('CELERY_BROKER_URL')
+    or os.environ.get('REDIS_URL')
+    or 'redis://127.0.0.1:6379/0'
+)
+CELERY_BROKER_URL = _redis_url
+CELERY_RESULT_BACKEND = _redis_url
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
