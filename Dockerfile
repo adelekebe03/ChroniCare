@@ -9,4 +9,6 @@ COPY . .
 
 RUN python manage.py collectstatic --no-input --clear
 
-CMD ["sh", "-c", "gunicorn ChroniCare.wsgi:application --bind 0.0.0.0:$PORT --workers 2"]
+# Au démarrage : migrate (idempotent) puis lance gunicorn.
+# Shell form nécessaire pour l'expansion de $PORT par le shell.
+CMD ["sh", "-c", "python manage.py migrate --no-input && gunicorn ChroniCare.wsgi:application --bind 0.0.0.0:$PORT --workers 2"]
